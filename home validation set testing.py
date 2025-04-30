@@ -14,21 +14,21 @@ torch.backends.cuda.matmul.allow_tf32 = False
 torch.backends.cudnn.allow_tf32       = False
 
 #Define checkpoints
-model_name = "EleutherAI/pythia-12b-deduped"
-snapshot   = "step143000"
+model_name = "EleutherAI/pythia-1.4b"
+final_snapshot   = "step143000"
 cache_dir  = "./PLACEHOLDER" #TODO: Define where to load model (for cluster)
 
 #Load weights in FULL FP-32
 model = GPTNeoXForCausalLM.from_pretrained(
             model_name,
-            revision=snapshot,
+            revision=final_snapshot,
 #            cache_dir=cache_dir,
             torch_dtype=torch.float32,
             device_map=None            #run entire model on single device -- maybe disable for cluster??
 )
 tokenizer = AutoTokenizer.from_pretrained(
                 model_name,
-                revision=snapshot,
+                revision=final_snapshot,
                 cache_dir=cache_dir
 )
 
