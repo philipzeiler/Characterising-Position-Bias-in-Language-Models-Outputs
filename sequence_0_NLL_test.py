@@ -52,49 +52,65 @@ def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
     return -lp[0, torch.arange(len(tgt), device=seq_ids.device), tgt]  # FP32
 # -----------------------------------------------------------------------------
 
-TOTAL_SHIFTS = CTX + L - 1                         # 2 048 + L − 1 shifts
+
+TOTAL_SHIFTS = CTX + L - 1          # run ~2 386 shifts for L=338
 for s in range(TOTAL_SHIFTS):
-    # position of last doc token in the window
     pos_last = s
     pos_first = pos_last - (L - 1)
-    pad_len   = max(0, -pos_first)
+    # ── window geometry (offset-based, works for grow-in + slide-out) ──
+    # ── window geometry (offset-based) ──────────────────────────────────────
+    # w < 0  : document tail is still growing in from the right
+    # w >= 0 : whole document is inside and slides right while shrinking
+    w = s - (L - 1)                         # offset of doc’s first token
 
-    # slice of doc-0 appearing in the window
-    tail_len   = min(pos_last + 1, L)
-    tail_start = L - tail_len
-    tail_ids   = doc0_ids[tail_start:]
+    doc_left  = max(0, -w)                  # first doc index inside window
+    doc_right = min(L, CTX - w)             # one-past-last doc index
+    doc_slice = doc0_ids[doc_left:doc_right]
+    slice_len = doc_right - doc_left        # length of doc_slice
+    left_start = doc_left                   # keep old variable name for write-loop
 
-    # left buffer if needed
-    if pad_len:
-        r_idx   = random.randint(0, len(val_ds) - 1)
-        r_ids   = tok(val_ds[r_idx]["text"], return_tensors="pt").input_ids[0]
-        buf_ids = r_ids[-pad_len:] if len(r_ids) >= pad_len else \
-                  torch.cat([r_ids,
-                             tok.eos_token_id * torch.ones(pad_len-len(r_ids),
-                                                           dtype=torch.long)])
-        window  = torch.cat([buf_ids, tail_ids])
-        print(f"[shift {s:5d}] pad {pad_len:4d} ← doc {r_idx}")
+    buf_len = max(0, w)                     # EOS / random buffer on the left
+    pad_len = CTX - buf_len - slice_len     # EOS on the right  ( ≥ 0 )
+
+    # ---- build left buffer -------------------------------------------------
+    if buf_len > 0:
+        buf_ids = []
+        remain  = buf_len
+        while remain > 0:                       # may need >1 random doc
+            r_idx = random.randint(0, len(val_ds) - 1)
+            r_ids = tok(val_ds[r_idx]["text"],
+                        return_tensors="pt").input_ids[0]
+            take  = r_ids[-remain:] if len(r_ids) >= remain else r_ids
+            buf_ids.insert(0, take)             # keep tail-to-head order
+            remain -= len(take)
+        buf_ids = torch.cat(buf_ids)
+        print(f"[shift {s:5d}] buf {buf_len:4d} ← random docs")
     else:
-        window  = tail_ids
-        print(f"[shift {s:5d}] pad    0  (doc fully inside window)")
+        buf_ids = torch.empty(0, dtype=torch.long)
 
-    # right-pad with EOS to get exact CTX length
-    if window.size(0) < CTX:
-        window = torch.cat([
-            torch.full((CTX-window.size(0),), tok.eos_token_id, dtype=torch.long),
-            window
-        ])
 
-    # show full window compressed to ASCII (first 80 chars)
-    ascii_preview = tok.decode(window).replace("\n", " ")[:80]
-    print("          window:", ascii_preview, "…")
+    # assemble window:  [buffer | doc_slice | right-pad]
+    eos_right = torch.full((pad_len,), tok.eos_token_id, dtype=torch.long)
+    window    = torch.cat([buf_ids, doc_slice, eos_right])
+
+    # preview the first 120 characters of the *document portion*
+    #doc_preview = tok.decode(doc_slice[:120]).replace("\n", " ")
+    #print(f"[shift {s:5d}] buf {buf_len:4d} |doc preview| {doc_preview}")
+
+    #old preview, which always shows the left edge of the context window:
+    preview = tok.decode(window[:120]).replace("\n", " ")
+    print("    left-edge 0-119:", preview)
+
+    # -- everything below (nll_for(..), matrix write) stays identical --
+
 
     # compute NLLs
-    nll_vec = nll_for(window.to(dev))           # length CTX-1 (FP32 tensor)
+    nll_vec = nll_for(window.to(dev))           # length CTX-1
 
-    # fill matrix for real tokens only
-    for k in range(pad_len, pad_len + tail_len):
-        doc_idx = (L - tail_len) + (k - pad_len)
+    # ---- store NLLs for every token in *doc_slice* -------------------------
+    for j, tok_id in enumerate(doc_slice):
+        k       = buf_len + j
+        doc_idx = left_start + j
         nll_mat[doc_idx, k] = nll_vec[k-1].item()
 
 # ── 4. Save ------------------------------------------------------------------
