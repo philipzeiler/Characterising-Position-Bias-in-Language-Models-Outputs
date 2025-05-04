@@ -36,6 +36,26 @@ val_ds = load_dataset(
          )
 print("[INFO] validation rows:", len(val_ds))
 
+# ── 2.a  Padding strategy toggle ───────────────────────────────────────────
+USE_RANDOM_BUFFER  = False       # ⇦ flip to False for a fixed 2 048-token buffer
+FIXED_PAD_PATH     = "fixed_pad.npy"   # cache for deterministic runs
+
+if not USE_RANDOM_BUFFER:
+    if os.path.exists(FIXED_PAD_PATH):
+        fixed_buf = torch.from_numpy(np.load(FIXED_PAD_PATH))
+        print(f"[INFO] loaded fixed buffer ({len(fixed_buf)} tokens)")
+    else:
+        parts, remain = [], CTX
+        while remain > 0:
+            r_idx  = random.randint(0, len(val_ds) - 1)
+            r_ids  = tok(val_ds[r_idx]["text"], return_tensors="pt").input_ids[0]
+            take   = r_ids[-remain:] if len(r_ids) >= remain else r_ids
+            parts.insert(0, take)
+            remain -= len(take)
+        fixed_buf = torch.cat(parts)          # exactly CTX tokens
+        np.save(FIXED_PAD_PATH, fixed_buf.cpu().numpy()) #comment this if you never want to save your buffer
+        print(f"[INFO] built & cached fixed buffer ({len(fixed_buf)} tokens)")
+
 # ── 3. Document-0 ------------------------------------------------------------
 doc0_ids = tok(val_ds[0]["text"], return_tensors="pt").input_ids[0]
 L        = len(doc0_ids)
@@ -52,6 +72,15 @@ def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
     return -lp[0, torch.arange(len(tgt), device=seq_ids.device), tgt]  # FP32
 # -----------------------------------------------------------------------------
 
+# copy of "helper" code, slightly adjusted by tiago to illustrate changes that I need to make in order to do "Batching" (implement later)
+#def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
+#    with torch.inference_mode():
+#        seq_ids[np.new_axis(),:].repeat(5, 1)
+#        logits = model(seq_ids[:, :-1][None]).logits.float()
+#        lp     = F.log_softmax(logits, -1)
+#    tgt = seq_ids[:, 1:]
+#    return -lp[0, torch.arange(len(tgt), device=seq_ids.device), tgt]  # FP32
+# -----------------------------------------------------------------------------
 
 TOTAL_SHIFTS = CTX + L - 1          # run ~2 386 shifts for L=338
 for s in range(TOTAL_SHIFTS):
@@ -72,19 +101,23 @@ for s in range(TOTAL_SHIFTS):
     buf_len = max(0, w)                     # EOS / random buffer on the left
     pad_len = CTX - buf_len - slice_len     # EOS on the right  ( ≥ 0 )
 
-    # ---- build left buffer -------------------------------------------------
+    # ---- build / retrieve left buffer --------------------------------------
     if buf_len > 0:
-        buf_ids = []
-        remain  = buf_len
-        while remain > 0:                       # may need >1 random doc
-            r_idx = random.randint(0, len(val_ds) - 1)
-            r_ids = tok(val_ds[r_idx]["text"],
-                        return_tensors="pt").input_ids[0]
-            take  = r_ids[-remain:] if len(r_ids) >= remain else r_ids
-            buf_ids.insert(0, take)             # keep tail-to-head order
-            remain -= len(take)
-        buf_ids = torch.cat(buf_ids)
-        print(f"[shift {s:5d}] buf {buf_len:4d} ← random docs")
+        if USE_RANDOM_BUFFER:
+            # build fresh buffer every shift (current behaviour)
+            parts, remain = [], buf_len
+            while remain > 0:
+                r_idx = random.randint(0, len(val_ds) - 1)
+                r_ids = tok(val_ds[r_idx]["text"],
+                            return_tensors="pt").input_ids[0]
+                take  = r_ids[-remain:] if len(r_ids) >= remain else r_ids
+                parts.insert(0, take)
+                remain -= len(take)
+            buf_ids = torch.cat(parts)
+        else:
+            # slice the pre-built fixed buffer
+            buf_ids = fixed_buf[-buf_len:]
+        print(f"[shift {s:5d}] buf {buf_len:4d}")
     else:
         buf_ids = torch.empty(0, dtype=torch.long)
 
