@@ -6,4 +6,4 @@ initial testing: documents the first tests I ran to see how I can get the log-li
 
 home validation set testing: I will try to adapt the initial code according to the specifications set initially and run a few starting tests on the validation set on my own computer.
 
-sequence_0_NLL_test: I attempt to run the complete evaluation of one single document (doc-0)
+sequence_0_NLL_test: I attempt to run the complete evaluation of one single document (doc-0).

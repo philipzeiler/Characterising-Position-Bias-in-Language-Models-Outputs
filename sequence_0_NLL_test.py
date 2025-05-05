@@ -36,7 +36,7 @@ val_ds = load_dataset(
          )
 print("[INFO] validation rows:", len(val_ds))
 
-# ── 2.a  Padding strategy toggle ───────────────────────────────────────────
+# ── 2.a  Padding strategy toggle and generation of fixed buffer ──────────────
 USE_RANDOM_BUFFER  = False       # ⇦ flip to False for a fixed 2 048-token buffer
 FIXED_PAD_PATH     = "fixed_pad.npy"   # cache for deterministic runs
 
@@ -86,7 +86,6 @@ TOTAL_SHIFTS = CTX + L - 1          # run ~2 386 shifts for L=338
 for s in range(TOTAL_SHIFTS):
     pos_last = s
     pos_first = pos_last - (L - 1)
-    # ── window geometry (offset-based, works for grow-in + slide-out) ──
     # ── window geometry (offset-based) ──────────────────────────────────────
     # w < 0  : document tail is still growing in from the right
     # w >= 0 : whole document is inside and slides right while shrinking
@@ -133,8 +132,6 @@ for s in range(TOTAL_SHIFTS):
     #old preview, which always shows the left edge of the context window:
     preview = tok.decode(window[:120]).replace("\n", " ")
     print("    left-edge 0-119:", preview)
-
-    # -- everything below (nll_for(..), matrix write) stays identical --
 
 
     # compute NLLs
