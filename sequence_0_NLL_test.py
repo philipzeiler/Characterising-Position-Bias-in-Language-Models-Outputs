@@ -9,7 +9,7 @@ from transformers import GPTNeoXForCausalLM, AutoTokenizer
 seed = 42
 torch.manual_seed(seed); random.seed(seed); np.random.seed(seed)
 torch.cuda.manual_seed_all(seed)
-torch.use_deterministic_algorithms(True)                # :contentReference[oaicite:0]{index=0}
+torch.use_deterministic_algorithms(True)
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 torch.backends.cudnn.benchmark  = False
 torch.backends.cudnn.deterministic = True
@@ -32,7 +32,7 @@ print(f"[INFO] model on {dev} – weights dtype {next(model.parameters()).dtype}
 val_ds = load_dataset(
             "pietrolesci/pile-validation",
             split="validation",
-            verification_mode="no_checks"      # replaces deprecated flag  :contentReference[oaicite:1]{index=1}
+            verification_mode="no_checks"      # replaces deprecated flag
          )
 print("[INFO] validation rows:", len(val_ds))
 
@@ -148,6 +148,6 @@ for s in range(TOTAL_SHIFTS):
 
 # ── 4. Save ------------------------------------------------------------------
 os.makedirs("nll_matrices", exist_ok=True)
-with h5py.File("nll_matrices/doc0_ctx2048.h5", "w") as f:
+with h5py.File("nll_matrices/doc0_ctx2048v2.h5", "w") as f:
     f.create_dataset("nll", data=nll_mat, compression="gzip")
-print("[INFO] matrix saved to nll_matrices/doc0_ctx2048.h5")
+print("[INFO] matrix saved to nll_matrices/doc0_ctx2048v2.h5")
