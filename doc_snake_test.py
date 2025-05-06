@@ -36,32 +36,25 @@ val_ds = load_dataset(
          )
 print("[INFO] validation rows:", len(val_ds))
 
-# ── 2.a  Padding strategy toggle and generation of fixed buffer ──────────────
-USE_RANDOM_BUFFER  = False       # ⇦ flip to False for a fixed 2 048-token buffer
-FIXED_PAD_PATH     = "fixed_pad.npy"   # cache for deterministic runs
+# ── 2.a  Global‑snake settings ────────────────────────────────────────────
+N_DOCS       = 1000          # process *this many* docs from the shuffled list
+SHUFFLE_SEED = 123           # reproducible permutation of the 214 k rows
 
-if not USE_RANDOM_BUFFER:
-    if os.path.exists(FIXED_PAD_PATH):
-        fixed_buf = torch.from_numpy(np.load(FIXED_PAD_PATH))
-        print(f"[INFO] loaded fixed buffer ({len(fixed_buf)} tokens)")
-    else:
-        parts, remain = [], CTX
-        while remain > 0:
-            r_idx  = random.randint(0, len(val_ds) - 1)
-            r_ids  = tok(val_ds[r_idx]["text"], return_tensors="pt").input_ids[0]
-            take   = r_ids[-remain:] if len(r_ids) >= remain else r_ids
-            parts.insert(0, take)
-            remain -= len(take)
-        fixed_buf = torch.cat(parts)          # exactly CTX tokens
-        np.save(FIXED_PAD_PATH, fixed_buf.cpu().numpy()) #comment this if you never want to save your buffer
-        print(f"[INFO] built & cached fixed buffer ({len(fixed_buf)} tokens)")
+# shuffle reproducibly -------------------------------------------------------
+doc_order = list(range(len(val_ds)))
+rng = random.Random(SHUFFLE_SEED)
+rng.shuffle(doc_order)
 
-# ── 3. Document-0 ------------------------------------------------------------
-doc0_ids = tok(val_ds[0]["text"], return_tensors="pt").input_ids[0]
-L        = len(doc0_ids)
-print(f"[INFO] doc-0 length = {L} tokens")
-
-nll_mat = np.full((L, CTX), np.nan, dtype=np.float32)
+# limit to N_DOCS and build contiguous token stream -------------------------
+stream_tokens = []
+lengths       = []                 # keep each doc length for slicing later
+for idx in doc_order[:N_DOCS]:
+    ids = tok(val_ds[idx]["text"], return_tensors="pt").input_ids[0]
+    stream_tokens.append(ids)
+    lengths.append(len(ids))
+stream = torch.cat(stream_tokens)   # shape (Σ lengths,)
+print(f"[INFO] snake length = {len(stream):,} tokens "
+      f"({N_DOCS} docs concatenated)")
 
 # helper ----------------------------------------------------------------------
 def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
@@ -82,48 +75,56 @@ def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
 #    return -lp[0, torch.arange(len(tgt), device=seq_ids.device), tgt]  # FP32
 # -----------------------------------------------------------------------------
 
-TOTAL_SHIFTS = CTX + L - 1          # run ~2 386 shifts for L=338
-for s in range(TOTAL_SHIFTS):
-    pos_last = s
-    pos_first = pos_last - (L - 1)
-    # ── window geometry (offset-based) ──────────────────────────────────────
-    # w < 0  : document tail is still growing in from the right
-    # w >= 0 : whole document is inside and slides right while shrinking
-    w = s - (L - 1)                         # offset of doc’s first token
+# ── 3. slide the full stream -------------------------------------------------
+# ── 3. slide the full stream -------------------------------------------------
+cursor = 0
+for doc_i, doc_len in enumerate(lengths):
+    nll_mat = np.full((doc_len, CTX), np.nan, dtype=np.float32)
 
-    doc_left  = max(0, -w)                  # first doc index inside window
-    doc_right = min(L, CTX - w)             # one-past-last doc index
-    doc_slice = doc0_ids[doc_left:doc_right]
-    slice_len = doc_right - doc_left        # length of doc_slice
-    left_start = doc_left                   # keep old variable name for write-loop
+    for local_pos in range(doc_len + CTX - 1):
+        global_pos_last = cursor + local_pos
+        w_start = max(0, global_pos_last - CTX + 1)
+        window  = stream[w_start:global_pos_last + 1]
 
-    buf_len = max(0, w)                     # EOS / random buffer on the left
-    pad_len = CTX - buf_len - slice_len     # EOS on the right  ( ≥ 0 )
+        # pad on the left if the window is still shorter than CTX
+        if window.size(0) < CTX:
+            pad = torch.full((CTX - window.size(0),),
+                             tok.eos_token_id, dtype=torch.long)
+            window = torch.cat([pad, window])
 
-    # ---- build / retrieve left buffer --------------------------------------
-    if buf_len > 0:
-        if USE_RANDOM_BUFFER:
-            # build fresh buffer every shift (current behaviour)
-            parts, remain = [], buf_len
-            while remain > 0:
-                r_idx = random.randint(0, len(val_ds) - 1)
-                r_ids = tok(val_ds[r_idx]["text"],
-                            return_tensors="pt").input_ids[0]
-                take  = r_ids[-remain:] if len(r_ids) >= remain else r_ids
-                parts.insert(0, take)
-                remain -= len(take)
-            buf_ids = torch.cat(parts)
-        else:
-            # slice the pre-built fixed buffer
-            buf_ids = fixed_buf[-buf_len:]
-        print(f"[shift {s:5d}] buf {buf_len:4d}")
-    else:
-        buf_ids = torch.empty(0, dtype=torch.long)
+        # ── NEW: human‑readable preview (first 120 decoded chars) ──────────
+        preview = tok.decode(window[:120]).replace("\n", " ")
+        print(f"[doc {doc_i:5d} | shift {local_pos:5d}] "
+              f"left‑edge 0‑119: {preview}")
+
+        # ---------- NLL computation unchanged ------------------------------
+        nll_vec = nll_for(window.to(dev))
+
+        # store NLLs for tokens belonging to *this* doc only
+        token_global_idx = global_pos_last
+        token_local_idx  = token_global_idx - cursor
+        if 0 <= token_local_idx < doc_len:
+            col = CTX - 1
+            nll_mat[token_local_idx, col] = nll_vec[col-1].item()
+            back = min(col, token_local_idx)
+            if back:
+                nll_mat[token_local_idx-back:token_local_idx,
+                        col-back:col] = nll_vec[col-back-1:col-1].cpu().numpy()
+    # … saving code unchanged …
 
 
-    # assemble window:  [buffer | doc_slice | right-pad]
-    eos_right = torch.full((pad_len,), tok.eos_token_id, dtype=torch.long)
-    window    = torch.cat([buf_ids, doc_slice, eos_right])
+    # save matrix for this document -----------------------------------------
+    out_dir = "nll_matrices_snake"
+    os.makedirs(out_dir, exist_ok=True)
+    with h5py.File(f"{out_dir}/doc{doc_i:06d}_ctx2048.h5", "w") as f:
+        f.create_dataset("nll", data=nll_mat, compression="gzip")
+    print(f"[INFO] wrote doc{doc_i:06d}  ({doc_len} tokens)")
+
+    cursor += doc_len             # advance to next document in the stream
+
+
+
+
 
     # preview the first 120 characters of the *document portion*
     #doc_preview = tok.decode(doc_slice[:120]).replace("\n", " ")
@@ -132,19 +133,3 @@ for s in range(TOTAL_SHIFTS):
     #old preview, which always shows the left edge of the context window:
     preview = tok.decode(window[:120]).replace("\n", " ")
     print("    left-edge 0-119:", preview)
-
-
-    # compute NLLs
-    nll_vec = nll_for(window.to(dev))           # length CTX-1
-
-    # ---- store NLLs for every token in *doc_slice* -------------------------
-    for j, tok_id in enumerate(doc_slice):
-        k       = buf_len + j
-        doc_idx = left_start + j
-        nll_mat[doc_idx, k] = nll_vec[k-1].item()
-
-# ── 4. Save ------------------------------------------------------------------
-os.makedirs("nll_matrices", exist_ok=True)
-with h5py.File("nll_matrices/doc0_ctx2048v2.h5", "w") as f:
-    f.create_dataset("nll", data=nll_mat, compression="gzip")
-print("[INFO] matrix saved to nll_matrices/doc0_ctx2048v2.h5")
