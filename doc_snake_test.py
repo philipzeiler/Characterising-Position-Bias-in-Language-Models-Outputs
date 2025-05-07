@@ -37,7 +37,7 @@ val_ds = load_dataset(
 print("[INFO] validation rows:", len(val_ds))
 
 # ── 2.a  Global‑snake settings ────────────────────────────────────────────
-N_DOCS       = 1000          # process *this many* docs from the shuffled list
+N_DOCS       = 10          # process *this many* docs from the shuffled list
 SHUFFLE_SEED = 123           # reproducible permutation of the 214 k rows
 
 # shuffle reproducibly -------------------------------------------------------
@@ -76,7 +76,6 @@ def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
 # -----------------------------------------------------------------------------
 
 # ── 3. slide the full stream -------------------------------------------------
-# ── 3. slide the full stream -------------------------------------------------
 cursor = 0
 for doc_i, doc_len in enumerate(lengths):
     nll_mat = np.full((doc_len, CTX), np.nan, dtype=np.float32)
@@ -92,12 +91,12 @@ for doc_i, doc_len in enumerate(lengths):
                              tok.eos_token_id, dtype=torch.long)
             window = torch.cat([pad, window])
 
-        # ── NEW: human‑readable preview (first 120 decoded chars) ──────────
+        # human‑readable preview (first 120 decoded chars) ──────────
         preview = tok.decode(window[:120]).replace("\n", " ")
         print(f"[doc {doc_i:5d} | shift {local_pos:5d}] "
               f"left‑edge 0‑119: {preview}")
 
-        # ---------- NLL computation unchanged ------------------------------
+        # ---------- NLL computation ------------------------------
         nll_vec = nll_for(window.to(dev))
 
         # store NLLs for tokens belonging to *this* doc only
@@ -110,8 +109,6 @@ for doc_i, doc_len in enumerate(lengths):
             if back:
                 nll_mat[token_local_idx-back:token_local_idx,
                         col-back:col] = nll_vec[col-back-1:col-1].cpu().numpy()
-    # … saving code unchanged …
-
 
     # save matrix for this document -----------------------------------------
     out_dir = "nll_matrices_snake"
@@ -131,5 +128,5 @@ for doc_i, doc_len in enumerate(lengths):
     #print(f"[shift {s:5d}] buf {buf_len:4d} |doc preview| {doc_preview}")
 
     #old preview, which always shows the left edge of the context window:
-    preview = tok.decode(window[:120]).replace("\n", " ")
-    print("    left-edge 0-119:", preview)
+    #preview = tok.decode(window[:120]).replace("\n", " ")
+    #print("    left-edge 0-119:", preview)

@@ -1,7 +1,7 @@
 # ─── Deep sanity checker ────────────────────────────────────────────────────
 import h5py, numpy as np, random, pandas as pd
 
-with h5py.File("nll_matrices/doc0_ctx2048.h5") as f:
+with h5py.File("nll_matrices_snake/doc000000_ctx2048.h5") as f:
     mat = f["nll"][...]              # (L, 2048)  FP32 + NaN
 
 L, C = mat.shape
