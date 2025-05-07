@@ -66,10 +66,13 @@ nll_mat = np.full((L, CTX), np.nan, dtype=np.float32)
 # helper ----------------------------------------------------------------------
 def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
     with torch.inference_mode():
-        logits = model(seq_ids[:-1][None]).logits.float()
+        logits = model(seq_ids[:-1][None]).logits.float() # we can change to FP16
         lp     = F.log_softmax(logits, -1)
     tgt = seq_ids[1:]
     return -lp[0, torch.arange(len(tgt), device=seq_ids.device), tgt]  # FP32
+#len(tgt) is much slower
+#use pytorch crossentropyloss function of seq ids
+#.nll_loss reduction to none
 # -----------------------------------------------------------------------------
 
 # copy of "helper" code, slightly adjusted by tiago to illustrate changes that I need to make in order to do "Batching" (implement later)
