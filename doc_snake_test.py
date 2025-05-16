@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # ─────────────────────────────────────────────────────────────────────────────
-# Variable-length “snake” NLL evaluation – RIGHT-append version
-# Same logic/structures as previous file, tokens now enter from the RIGHT.
+# Variable‑length “snake” NLL evaluation
+# Prepends entire docs when snake ≤ 2047 tokens; computes NLL on last 2048;
+# pops one token from the right each step; repeats until all docs processed.
 # ─────────────────────────────────────────────────────────────────────────────
 import os, random, itertools, numpy as np, torch, h5py, torch.nn.functional as F
 from collections import deque
@@ -23,7 +24,7 @@ torch.backends.cudnn.allow_tf32       = False
 CTX        = 2048            # window length
 MODEL_ID   = "EleutherAI/pythia-1.4b"
 REVISION   = "step143000"
-n_docs     = 5              # evaluate this many docs
+n_docs     = 100              # evaluate this many docs
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -38,10 +39,10 @@ val_ds   = load_dataset("pietrolesci/pile-validation",
                         split="validation",
                         verification_mode="no_checks")
 doc_order = list(range(len(val_ds)))
-random.Random(doc_seed).shuffle(doc_order)                  # deterministic order through random seed
+random.Random(doc_seed).shuffle(doc_order)                  # deterministic
 print("[DEBUG] first 100 shuffled doc ids:", doc_order[:100])
 
-# ── 4. Helper: FP16 per-token NLL ───────────────────────────────────────────
+# ── 4. Helper: FP16 per‑token NLL ───────────────────────────────────────────
 def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
     """
     seq_ids  – 1‑D LongTensor length CTX (on device)
@@ -54,7 +55,7 @@ def nll_for(seq_ids: torch.Tensor) -> torch.Tensor:
     return torch.nn.functional.nll_loss(                    # token‑wise NLL
             lp.squeeze(0), tgt, reduction="none").half().cpu()
 
-# ── 5. Variable-length snake initialisation ─────────────────────────────────
+# ── 5. Variable‑length snake initialisation ─────────────────────────────────
 eos_id      = tok.eos_token_id
 snake_ids   = deque([eos_id] * (CTX - 1))                   # 2047 EOS
 snake_meta  = deque([None]  * (CTX - 1))                    # parallel metadata
@@ -76,33 +77,36 @@ while True:
                 "matrix": np.full((L, CTX-1), np.nan,
                                   dtype=np.float16),
             }
-            # APPEND entire doc on the right (chronological order)
-            snake_ids.extend(tokens.tolist())
-            snake_meta.extend((doc_id, idx) for idx in range(L))
-            print(f"[INFO] entered doc {doc_id} (len={L}); docs_entered={docs_entered}")
-        else:
-            snake_ids.append(eos_id)            # pad on the right
-            snake_meta.append(None)
+            # prepend entire doc (last token first) using extendleft
+            snake_ids.extendleft(int(t) for t in reversed(tokens))
+            snake_meta.extendleft((doc_id, idx)
+                                   for idx in reversed(range(L)))
+            print(f"[INFO] entered doc {doc_id} (len={L}); "
+                  f"docs_entered={docs_entered}")
+        else:                                               # only EOS padding
+            snake_ids.appendleft(eos_id)
+            snake_meta.appendleft(None)
 
-    # 5-B. Build 2 048-token context (LEFT-most chunk) ----------------------
-    window_ids  = list(itertools.islice(snake_ids, 0, CTX))
-    window_meta = list(itertools.islice(snake_meta, 0, CTX))
-    seq_tensor  = torch.tensor(window_ids, dtype=torch.long, device=dev)
-    nll_vec     = nll_for(seq_tensor).numpy()
+    # ── 5‑B. Build 2 048‑token context (rightmost chunk) ────────────────────
+    # deque → list copy = 2 048 ints ≈ 8 kB, trivial cost
+    window_ids   = list(itertools.islice(snake_ids, len(snake_ids)-CTX, None))
+    window_meta  = list(itertools.islice(snake_meta, len(snake_meta)-CTX, None))
+    seq_tensor   = torch.tensor(window_ids, dtype=torch.long, device=dev)
+    nll_vec      = nll_for(seq_tensor).numpy()              # (CTX‑1,) FP16
 
-    # 5-C. Scatter NLLs into per-doc matrices -------------------------------
-    for k in range(1, CTX):
+    # ── 5‑C. Scatter NLLs into per‑doc matrices ─────────────────────────────
+    for k in range(1, CTX):                                 # position in window
         meta = window_meta[k]
         if meta is None:
             continue
         doc_id, tok_idx = meta
         active_docs[doc_id]["matrix"][tok_idx, k-1] = nll_vec[k-1]
 
-    # 5-D. Slide window: pop one token from the LEFT ------------------------
-    snake_ids.popleft()
-    snake_meta.popleft()
+    # ── 5‑D. Slide right: pop 1 token from the tail ─────────────────────────
+    snake_ids.pop()
+    snake_meta.pop()
 
-    # 5-E. Close & save docs that left the snake ----------------------------
+    # ── 5‑E. Close & save docs that left the snake entirely ─────────────────
     current_doc_ids = {m[0] for m in snake_meta if m is not None}
     finished = [d for d in active_docs if d not in current_doc_ids]
     for d in finished:
@@ -114,15 +118,15 @@ while True:
         print(f"[INFO] saved doc {d} → {out_path}")
         del active_docs[d]; docs_done += 1
 
-    # 5-F. Progress logging every 1 k shifts -------------------------------
+    # ── 5‑F. Logging every 1 k shifts ───────────────────────────────────────
     if shift % 1000 == 0:
         print(f"[DBG] shift={shift:7d}  snake_len={len(snake_ids):5d}  "
               f"open_docs={len(active_docs)}")
 
-    # 5-G. Terminate ---------------------------------------------------------
+    # ── 5‑G. Terminate when all docs processed & window pure EOS ────────────
     if docs_done == n_docs and all(m is None for m in snake_meta):
         assert not active_docs
-        print("[INFO] evaluation complete – all requested docs processed")
+        print("[INFO] evaluation complete - all requested docs processed")
         break
 
     shift += 1
