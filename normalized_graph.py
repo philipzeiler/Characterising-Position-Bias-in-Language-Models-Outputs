@@ -1,7 +1,7 @@
 import h5py, numpy as np, matplotlib.pyplot as plt, os
 
-H5_PATH = "nll_matrices/doc0_ctx2048.h5"   # adjust if you saved elsewhere
-CTX     = 2048
+H5_PATH = "nll_matrices/doc1821_fp16.h5"   # adjust if you saved elsewhere
+CTX     = 2047
 
 with h5py.File(H5_PATH) as f:
     mat = f["nll"][:]                      # shape (L, 2048)
