@@ -1,63 +1,85 @@
-import glob, h5py, numpy as np
-import seaborn as sns, matplotlib.pyplot as plt, os
+#!/usr/bin/env python3
+# Exact per-position mean/median/IQR for all NLL matrices
+# with NaN‐detection warnings.
 
-# --- parameters -------------------------------------------------------------
-FOLDER = "nll_matrices"          # folder containing per-doc *.h5 saved earlier
-CONTEXT = 2047                   # number of context positions in each matrix
+import glob, os, h5py, numpy as np
+import seaborn as sns, matplotlib.pyplot as plt
+from tqdm import tqdm                                            # :contentReference[oaicite:0]{index=0}
 
-# --- pass 1: aggregate ------------------------------------------------------
-sum_vec   = np.zeros(CONTEXT, dtype=np.float64)   # running sum of NLLs
-count_vec = np.zeros(CONTEXT, dtype=np.int64)     # running count (non-NaN)
+FOLDER = "nll_matrices"
+paths  = glob.glob(os.path.join(FOLDER, "*.h5"))                 # :contentReference[oaicite:1]{index=1}
+if not paths:
+    raise RuntimeError("no .h5 files found")
 
-paths = glob.glob(os.path.join(FOLDER, "*.h5"))
-print(f"[INFO] found {len(paths)} files in {FOLDER!r}")
+with h5py.File(paths[0]) as f:                                   # hyperslab docs :contentReference[oaicite:2]{index=2}
+    CONTEXT = f["nll"].shape[1]
+
+# ── mean (exact) ───────────────────────────────────────────────
+sum_vec   = np.zeros(CONTEXT, dtype=np.float64)
+count_vec = np.zeros(CONTEXT, dtype=np.int64)
+nan_found = False
 
 for p in paths:
-    with h5py.File(p, "r") as f:
-        mat = f["nll"][...].astype(np.float32)    # (L, 2047)
-    # mask non-NaNs
-    good = ~np.isnan(mat)
-    # accumulate
+    with h5py.File(p) as f:
+        mat = f["nll"][...].astype(np.float64)                   # promote precision
+    if np.isnan(mat).any():                                      # isnan docs :contentReference[oaicite:3]{index=3}
+        print(f"\033[91m[WARNING] NaNs detected in {p}\033[0m")
+        nan_found = True
+    mask = ~np.isnan(mat)
     sum_vec   += np.nan_to_num(mat, nan=0.).sum(axis=0)
-    count_vec += good.sum(axis=0)
+    count_vec += mask.sum(axis=0)
 
-# avoid division by zero for empty columns (should not happen)
-mean_vec = np.divide(sum_vec, count_vec, out=np.zeros_like(sum_vec), where=count_vec>0)
+mean_vec = sum_vec / count_vec                                   # exact nanmean :contentReference[oaicite:4]{index=4}
 
-# --- aggregate stats per column for variability (median/IQR) ---------------
-# collect per-file stats to avoid stacking all matrices in RAM
-median_list, q1_list, q3_list = [], [], []
+# ── exact median & IQR (column-wise concat) ───────────────────
+median_vec = np.empty(CONTEXT, dtype=np.float32)
+q1_vec     = np.empty(CONTEXT, dtype=np.float32)
+q3_vec     = np.empty(CONTEXT, dtype=np.float32)
 
-for p in paths:
-    with h5py.File(p, "r") as f:
-        mat = f["nll"][...].astype(np.float32)
-    median_list.append(np.nanmedian(mat, axis=0))
-    q1_list.append(np.nanpercentile(mat, 25, axis=0))
-    q3_list.append(np.nanpercentile(mat, 75, axis=0))
+print("[INFO] computing exact quartiles (this may take a while)…")
+for col in tqdm(range(CONTEXT)):
+    col_vals = []
+    for p in paths:
+        with h5py.File(p) as f:
+            data = f["nll"][:, col][:]                           # hyperslab slice
+        data = data[~np.isnan(data)]
+        if data.size:
+            col_vals.append(data.astype(np.float32))
+    col_all = np.concatenate(col_vals)                           # concatenate docs :contentReference[oaicite:5]{index=5}
+    median_vec[col] = np.median(col_all)                         # exact median :contentReference[oaicite:6]{index=6}
+    q1_vec[col]     = np.percentile(col_all, 25)                 # exact pct 25 :contentReference[oaicite:7]{index=7}
+    q3_vec[col]     = np.percentile(col_all, 75)
 
-median_vec = np.nanmean(np.stack(median_list), axis=0)
-q1_vec     = np.nanmean(np.stack(q1_list), axis=0)
-q3_vec     = np.nanmean(np.stack(q3_list), axis=0)
+if nan_found:
+    print("\033[91m[WARNING] One or more files contained NaNs; "
+          "verify data integrity before publication.\033[0m")
+else:
+    print("[INFO] no NaNs encountered – matrices are fully populated.")
 
-# --- plot -------------------------------------------------------------------
+# ── plot ───────────────────────────────────────────────────────
 sns.set_theme(style="whitegrid")
 pos = np.arange(CONTEXT)
 
 plt.figure(figsize=(12, 3))
 ax = plt.gca()
 ax.fill_between(pos, q1_vec, q3_vec, alpha=.25,
-                color=sns.color_palette()[0], label="IQR (25–75 pct)")
+                color=sns.color_palette()[0], label="IQR (25-75 %)")
 sns.lineplot(x=pos, y=mean_vec,   linewidth=1.8, ax=ax,
              label="mean",   color=sns.color_palette()[0])
 sns.lineplot(x=pos, y=median_vec, linewidth=1.2, ax=ax,
              label="median", color=sns.color_palette()[2], linestyle="--")
 
-EPS = 1e-6
-ax.set(xlim=(0, CONTEXT-1), ylim=(EPS, None),
+finite_vals = np.concatenate([mean_vec, median_vec, q1_vec, q3_vec])
+finite_vals = finite_vals[np.isfinite(finite_vals)]
+ymin_auto   = 10 ** (np.floor(np.log10(finite_vals.min())))
+ymin_final  = max(ymin_auto, 1e-4)
+
+ax.set(xlim=(0, CONTEXT-1),
+       ylim=(ymin_final, None),
        xlabel="context position (0–2046)",
        ylabel="NLL (log scale)")
 ax.set_yscale("log")
-ax.set_title("Average per-position NLL across all documents")
+ax.set_title("Exact per-position NLL across all documents")
 ax.legend()
 plt.tight_layout()
 plt.show()
