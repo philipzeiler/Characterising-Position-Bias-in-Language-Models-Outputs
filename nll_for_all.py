@@ -4,14 +4,14 @@
 
 import glob, os, h5py, numpy as np
 import seaborn as sns, matplotlib.pyplot as plt
-from tqdm import tqdm                                            # :contentReference[oaicite:0]{index=0}
+from tqdm import tqdm
 
 FOLDER = "nll_matrices"
-paths  = glob.glob(os.path.join(FOLDER, "*.h5"))                 # :contentReference[oaicite:1]{index=1}
+paths  = glob.glob(os.path.join(FOLDER, "*.h5"))
 if not paths:
     raise RuntimeError("no .h5 files found")
 
-with h5py.File(paths[0]) as f:                                   # hyperslab docs :contentReference[oaicite:2]{index=2}
+with h5py.File(paths[0]) as f:                                   # hyperslab docs
     CONTEXT = f["nll"].shape[1]
 
 # ── mean (exact) ───────────────────────────────────────────────
@@ -22,14 +22,14 @@ nan_found = False
 for p in paths:
     with h5py.File(p) as f:
         mat = f["nll"][...].astype(np.float64)                   # promote precision
-    if np.isnan(mat).any():                                      # isnan docs :contentReference[oaicite:3]{index=3}
+    if np.isnan(mat).any():                                      # isnan docs
         print(f"\033[91m[WARNING] NaNs detected in {p}\033[0m")
         nan_found = True
     mask = ~np.isnan(mat)
     sum_vec   += np.nan_to_num(mat, nan=0.).sum(axis=0)
     count_vec += mask.sum(axis=0)
 
-mean_vec = sum_vec / count_vec                                   # exact nanmean :contentReference[oaicite:4]{index=4}
+mean_vec = sum_vec / count_vec                                   # exact nanmean
 
 # ── exact median & IQR (column-wise concat) ───────────────────
 median_vec = np.empty(CONTEXT, dtype=np.float32)
@@ -45,16 +45,16 @@ for col in tqdm(range(CONTEXT)):
         data = data[~np.isnan(data)]
         if data.size:
             col_vals.append(data.astype(np.float32))
-    col_all = np.concatenate(col_vals)                           # concatenate docs :contentReference[oaicite:5]{index=5}
-    median_vec[col] = np.median(col_all)                         # exact median :contentReference[oaicite:6]{index=6}
-    q1_vec[col]     = np.percentile(col_all, 25)                 # exact pct 25 :contentReference[oaicite:7]{index=7}
+    col_all = np.concatenate(col_vals)                           # concatenate docs
+    median_vec[col] = np.median(col_all)                         # exact median
+    q1_vec[col]     = np.percentile(col_all, 25)                 # exact pct 25
     q3_vec[col]     = np.percentile(col_all, 75)
 
 if nan_found:
     print("\033[91m[WARNING] One or more files contained NaNs; "
           "verify data integrity before publication.\033[0m")
 else:
-    print("[INFO] no NaNs encountered – matrices are fully populated.")
+    print("[INFO] no NaNs encountered - matrices are fully populated.")
 
 # ── plot ───────────────────────────────────────────────────────
 sns.set_theme(style="whitegrid")
@@ -76,7 +76,7 @@ ymin_final  = max(ymin_auto, 1e-4)
 
 ax.set(xlim=(0, CONTEXT-1),
        ylim=(ymin_final, None),
-       xlabel="context position (0–2046)",
+       xlabel="context position (0-2046)",
        ylabel="NLL (log scale)")
 ax.set_yscale("log")
 ax.set_title("Exact per-position NLL across all documents")

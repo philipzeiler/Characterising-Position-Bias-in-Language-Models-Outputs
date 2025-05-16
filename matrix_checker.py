@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 sns.set_theme(style="whitegrid")           # cosmetic default
 
 # --------------------------- load ------------------------------------------------
-PATH = "nll_matrices/doc63579_fp16.h5"     # adjust as needed
+PATH = "nll_matrices/doc127302_fp16.h5"     # adjust as needed
 with h5py.File(PATH) as f:
     mat = f["nll"][...]                    # (L, 2047)  float16 + NaN
 mat = mat.astype(np.float32)               # prevent float16 overflow
