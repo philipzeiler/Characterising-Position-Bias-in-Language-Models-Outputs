@@ -10,7 +10,7 @@ from datasets import load_dataset
 from transformers import GPTNeoXForCausalLM, AutoTokenizer
 
 # ── 0. Determinism flags ────────────────────────────────────────────────────
-seed, doc_seed = 42, 42
+seed, doc_seed = 42, 420
 torch.manual_seed(seed); random.seed(seed); np.random.seed(seed)
 torch.cuda.manual_seed_all(seed)
 torch.use_deterministic_algorithms(True)
@@ -25,7 +25,7 @@ CTX        = 2048   # window length
 BATCH      = 7      # batch size
 MODEL_ID   = "EleutherAI/pythia-1.4b"
 REVISION   = "step143000"
-n_docs     = 5              # evaluate this many docs
+n_docs     = 500              # evaluate this many docs
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
