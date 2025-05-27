@@ -68,7 +68,12 @@ sns.lineplot(x=pos, y=mean_vec,   linewidth=1.8, ax=ax,
              label="mean",   color=sns.color_palette()[0])
 sns.lineplot(x=pos, y=median_vec, linewidth=1.2, ax=ax,
              label="median", color=sns.color_palette()[2], linestyle="--")
-
+"""TIAGO TIPS:
+df = pd.DataFrame(
+    {"surp": surp, "pos": pos, "t": t}
+)
+sns.lineplot(df, x="t", y="surp", hue="pos", palette="Set1")
+"""
 finite_vals = np.concatenate([mean_vec, median_vec, q1_vec, q3_vec])
 finite_vals = finite_vals[np.isfinite(finite_vals)]
 ymin_auto   = 10 ** (np.floor(np.log10(finite_vals.min())))

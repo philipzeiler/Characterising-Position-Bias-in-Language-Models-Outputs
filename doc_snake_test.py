@@ -22,10 +22,10 @@ torch.backends.cudnn.allow_tf32       = False
 
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX        = 2048   # window length
-BATCH      = 7      # batch size
+BATCH      = 7      # batch size (maybe set to power of 2)
 MODEL_ID   = "EleutherAI/pythia-1.4b"
 REVISION   = "step143000"
-n_docs     = 500              # evaluate this many docs
+n_docs     = 1000              # evaluate this many docs
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,7 +33,7 @@ model = GPTNeoXForCausalLM.from_pretrained(
             MODEL_ID, revision=REVISION, torch_dtype=torch.float16
         ).to(dev).eval()
 tok   = AutoTokenizer.from_pretrained(MODEL_ID, revision=REVISION)
-print(f"[INFO] model on {dev} – dtype {next(model.parameters()).dtype}")
+print(f"[INFO] model on {dev} - dtype {next(model.parameters()).dtype}")
 
 # ── 3. Dataset & shuffled doc order ─────────────────────────────────────────
 val_ds   = load_dataset("pietrolesci/pile-validation",
@@ -48,14 +48,15 @@ def nll_for(batch_ids: torch.Tensor) -> torch.Tensor:
     """
     T = CTX-1
     B = BATCH
+    V = Vocabulary size
     batch_ids - [B, CTX] LongTensor on GPU
     returns   - [B, T]   Float16 on CPU
     """
     with torch.inference_mode():
         logits = model(batch_ids[:, :-1]).logits         # [B,T,V] FP16
-        lp = torch.log_softmax(logits.float(), -1).permute(0, 2, 1)  # shape [B, V, T]
+        lp = torch.log_softmax(logits.float(), -1).permute(0, 2, 1)  # shape [B, V, T] # try without float cast
     tgt = batch_ids[:, 1:]
-    nll = F.nll_loss(lp, tgt, reduction="none").half()   # [B,T] FP16
+    nll = F.nll_loss(lp, tgt, reduction="none").half()   # [B,T] FP16 # put inside torch inference mode
     return nll.cpu()
 
 # ── 5. Variable-length snake initialisation ─────────────────────────────────
@@ -76,7 +77,7 @@ while True:
                           return_tensors="pt").input_ids[0]
             L      = len(tokens)
             active_docs[doc_id] = {
-                "tokens": tokens,                            # tokens currently unused but may be useful in the future
+            #    "tokens": tokens,                            # tokens currently unused but may be useful in the future
                 "matrix": np.full((L, CTX-1), np.nan,
                                   dtype=np.float16),
             }
@@ -100,7 +101,7 @@ while True:
         windows_meta.append(list(itertools.islice(snake_meta, left, right)))
 
     batch_tensor = torch.tensor(windows_ids, dtype=torch.long, device=dev)
-    nll_batch    = nll_for(batch_tensor).numpy()         # [B, 2047]
+    nll_batch    = nll_for(batch_tensor).numpy()         # [B, 2047] #maybe dont need to take out of pytorch
 
     # ── 5-C. Scatter losses into per-doc matrices ───────────────────────────
     for b in range(BATCH):
@@ -111,6 +112,7 @@ while True:
                 continue
             doc_id, tok_idx = meta
             active_docs[doc_id]["matrix"][tok_idx, k-1] = nll_batch[b, k-1]
+        #active_docs[doc_id]["matrix"][tok_idx, :CTX] = nll_batch[b, :CTX].where()
 
     # ── 5-D. Slide right: pop BATCH tokens from the tail ────────────────────
     for _ in range(BATCH):
@@ -141,3 +143,5 @@ while True:
         break
 
     shift += 1
+
+#TODO: insert timers at each block to test
