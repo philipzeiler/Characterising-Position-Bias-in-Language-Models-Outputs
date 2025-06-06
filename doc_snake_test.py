@@ -10,7 +10,7 @@ from datasets import load_dataset
 from transformers import GPTNeoXForCausalLM, AutoTokenizer
 
 # ── 0. Determinism flags ────────────────────────────────────────────────────
-seed, doc_seed = 42, 420
+seed, doc_seed = 42, 753
 torch.manual_seed(seed); random.seed(seed); np.random.seed(seed)
 torch.cuda.manual_seed_all(seed)
 torch.use_deterministic_algorithms(True)
@@ -22,10 +22,10 @@ torch.backends.cudnn.allow_tf32       = False
 
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX        = 2048   # window length
-BATCH      = 7      # batch size (maybe set to power of 2)
+BATCH      = 4      # batch size (maybe set to power of 2)
 MODEL_ID   = "EleutherAI/pythia-1.4b"
 REVISION   = "step143000"
-n_docs     = 1000              # evaluate this many docs
+n_docs     = 10000              # evaluate this many docs
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -54,9 +54,9 @@ def nll_for(batch_ids: torch.Tensor) -> torch.Tensor:
     """
     with torch.inference_mode():
         logits = model(batch_ids[:, :-1]).logits         # [B,T,V] FP16
-        lp = torch.log_softmax(logits.float(), -1).permute(0, 2, 1)  # shape [B, V, T] # try without float cast
-    tgt = batch_ids[:, 1:]
-    nll = F.nll_loss(lp, tgt, reduction="none").half()   # [B,T] FP16 # put inside torch inference mode
+        lp = torch.log_softmax(logits.float(), -1).permute(0, 2, 1)  # shape [B, V, T]
+        tgt = batch_ids[:, 1:]
+        nll = F.nll_loss(lp, tgt, reduction="none").half()
     return nll.cpu()
 
 # ── 5. Variable-length snake initialisation ─────────────────────────────────
@@ -112,6 +112,7 @@ while True:
                 continue
             doc_id, tok_idx = meta
             active_docs[doc_id]["matrix"][tok_idx, k-1] = nll_batch[b, k-1]
+        #We could implement following speedup, but time spent on saving into files is minimal so not worth the time.
         #active_docs[doc_id]["matrix"][tok_idx, :CTX] = nll_batch[b, :CTX].where()
 
     # ── 5-D. Slide right: pop BATCH tokens from the tail ────────────────────
@@ -123,7 +124,7 @@ while True:
     current_doc_ids = {m[0] for m in snake_meta if m is not None}
     finished = [d for d in active_docs if d not in current_doc_ids]
     for d in finished:
-        out_path = f"nll_matrices/doc{d}_fp16.h5"
+        out_path = f"nll_matrices/doc{d}.h5"
         with h5py.File(out_path, "w") as f:
             f.create_dataset("nll",
                              data=active_docs[d]["matrix"],
@@ -143,5 +144,3 @@ while True:
         break
 
     shift += 1
-
-#TODO: insert timers at each block to test

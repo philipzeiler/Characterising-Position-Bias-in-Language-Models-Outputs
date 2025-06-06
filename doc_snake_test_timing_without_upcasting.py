@@ -33,10 +33,10 @@ with Timer("00-setup", timers):
 
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX   = 2048
-BATCH = 7
+BATCH = 8
 MODEL_ID = "EleutherAI/pythia-1.4b"
 REVISION  = "step143000"
-n_docs    = 5
+n_docs    = 15
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 with Timer("01-model-load", timers):

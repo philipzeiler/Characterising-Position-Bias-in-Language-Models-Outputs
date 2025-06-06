@@ -11,9 +11,9 @@ from transformers import AutoTokenizer
 VAL_DS   = "pietrolesci/pile-validation"
 MODEL_ID = "EleutherAI/pythia-1.4b"
 
-tok = AutoTokenizer.from_pretrained(MODEL_ID)                 # HF tokenizer :contentReference[oaicite:1]{index=1}
+tok = AutoTokenizer.from_pretrained(MODEL_ID)                 # HF tokenizer
 val = datasets.load_dataset(VAL_DS, split="validation",
-                            verification_mode="no_checks")    # HF datasets :contentReference[oaicite:2]{index=2}
+                            verification_mode="no_checks")    # HF datasets
 
 lengths = []
 for doc in tqdm.tqdm(val, desc="tokenising"):
@@ -22,7 +22,7 @@ for doc in tqdm.tqdm(val, desc="tokenising"):
 
 lengths = np.asarray(lengths)
 above_ctx     = np.sum(lengths > 2048)                       # doc count
-total_tokens  = lengths.sum(dtype=np.int64)                  # all tokens   :contentReference[oaicite:3]{index=3}
+total_tokens  = lengths.sum(dtype=np.int64)                  # all tokens
 short_tokens  = lengths[lengths < 2048].sum(dtype=np.int64)  # tokens in short docs
 
 print(f"Documents analysed           : {len(lengths):,}")

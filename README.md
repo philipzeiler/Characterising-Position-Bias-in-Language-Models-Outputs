@@ -61,7 +61,63 @@ Time test without upcasting on 5 docs:
 03-snake-init     :      0.000 s
 
 
-Difference to version using upcasting (arbitrary doc):
+Time test with upcasting, batch size 1:
+=== Time spent per segment ===
+04-model-forward  :    198.300 s
+02-dataset-load   :      2.553 s
+01-model-load     :      2.211 s
+05C-scatter       :      1.922 s
+05B-build-windows :      0.908 s
+05E-save          :      0.390 s
+05A-snake-fill    :      0.017 s
+05D-slide         :      0.005 s
+00-setup          :      0.002 s
+03-snake-init     :      0.000 s
+
+
+Time test with upcasting, batch size 2:
+=== Time spent per segment ===
+04-model-forward  :    190.343 s
+02-dataset-load   :      2.472 s
+01-model-load     :      2.168 s
+05C-scatter       :      1.720 s
+05B-build-windows :      0.759 s
+05E-save          :      0.274 s
+05A-snake-fill    :      0.015 s
+05D-slide         :      0.003 s
+00-setup          :      0.003 s
+03-snake-init     :      0.000 s
+
+
+Time test with upcasting, batch size 4:
+=== Time spent per segment ===
+04-model-forward  :    185.130 s
+01-model-load     :      2.329 s
+02-dataset-load   :      2.077 s
+05C-scatter       :      1.674 s
+05B-build-windows :      0.663 s
+05E-save          :      0.214 s
+05A-snake-fill    :      0.015 s
+00-setup          :      0.002 s
+05D-slide         :      0.002 s
+03-snake-init     :      0.000 s
+
+
+Time test with upcasting, batch size 8:
+=== Time spent per segment ===
+04-model-forward  :    187.910 s
+02-dataset-load   :      2.348 s
+01-model-load     :      2.195 s
+05C-scatter       :      1.798 s
+05B-build-windows :      0.640 s
+05E-save          :      0.189 s
+05A-snake-fill    :      0.015 s
+00-setup          :      0.002 s
+05D-slide         :      0.001 s
+03-snake-init     :      0.000 s
+
+
+Difference to version using upcasting (arbitrary doc) (Within 15 docs: non NaN encountered):
 Mean   A : 2.593810
 Mean   B : 2.593809
 Mean   difference (A-B) : 0.000000
