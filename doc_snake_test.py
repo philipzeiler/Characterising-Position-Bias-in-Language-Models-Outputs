@@ -23,9 +23,10 @@ torch.backends.cudnn.allow_tf32       = False
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX        = 2048   # window length
 BATCH      = 4      # batch size (maybe set to power of 2)
-MODEL_ID   = "EleutherAI/pythia-1.4b"
+MODEL_ID   = "EleutherAI/pythia-70M"
+MODEL_SIZE = "70M"
 REVISION   = "step143000"
-n_docs     = 10000              # evaluate this many docs
+n_docs     = 5000              # evaluate this many docs
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,7 +67,7 @@ snake_meta  = deque([None]  * (CTX - 1))                    # parallel metadata
 active_docs = {}                                            # doc_id → state
 docs_entered = docs_done = shift = 0
 
-os.makedirs("nll_matrices", exist_ok=True)
+os.makedirs(f"D:/NLL_matrices/{MODEL_SIZE}", exist_ok=True)
 
 while True:
     # ── 5-A. Ensure snake ≥ 2048 tokens ─────────────────────────────────────
@@ -124,7 +125,7 @@ while True:
     current_doc_ids = {m[0] for m in snake_meta if m is not None}
     finished = [d for d in active_docs if d not in current_doc_ids]
     for d in finished:
-        out_path = f"nll_matrices/doc{d}.h5"
+        out_path = f"D:/NLL_matrices/{MODEL_SIZE}/doc{d}.h5"
         with h5py.File(out_path, "w") as f:
             f.create_dataset("nll",
                              data=active_docs[d]["matrix"],
