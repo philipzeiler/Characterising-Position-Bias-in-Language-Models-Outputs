@@ -8,6 +8,7 @@ import os, random, itertools, numpy as np, torch, h5py, torch.nn.functional as F
 from collections import deque
 from datasets import load_dataset
 from transformers import GPTNeoXForCausalLM, AutoTokenizer
+import os.path as _osp
 
 # ── 0. Determinism flags ────────────────────────────────────────────────────
 seed, doc_seed = 42, 753
@@ -22,11 +23,12 @@ torch.backends.cudnn.allow_tf32       = False
 
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX        = 2048   # window length
-BATCH      = 4      # batch size (maybe set to power of 2)
-MODEL_ID   = "EleutherAI/pythia-70M"
-MODEL_SIZE = "70M"
-REVISION   = "step143000"
-n_docs     = 5000              # evaluate this many docs
+BATCH      = 1      # batch size (maybe set to power of 2)
+MODEL_SIZE = "1.4B"
+MODEL_ID   = f"EleutherAI/pythia-{MODEL_SIZE}"
+REVISION   = "step143000"    #"step143000" is the final revision
+n_docs     = 5000            # evaluate this many docs
+QUICKSTART_FROM = 4799          # if code was interrupted, restart by entering how many files you already have
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -92,29 +94,30 @@ while True:
             snake_ids.appendleft(eos_id)
             snake_meta.appendleft(None)
 
-    # ── 5-B. Build *batched* windows (adjacent offsets) ─────────────────────
-    windows_ids  = []
-    windows_meta = []
-    for off in range(BATCH):
-        left  = len(snake_ids) - CTX - off
-        right = len(snake_ids) - off
-        windows_ids.append(list(itertools.islice(snake_ids, left, right)))
-        windows_meta.append(list(itertools.islice(snake_meta, left, right)))
+    if(QUICKSTART_FROM < docs_entered):
+        # ── 5-B. Build *batched* windows (adjacent offsets) ─────────────────────
+        windows_ids  = []
+        windows_meta = []
+        for off in range(BATCH):
+            left  = len(snake_ids) - CTX - off
+            right = len(snake_ids) - off
+            windows_ids.append(list(itertools.islice(snake_ids, left, right)))
+            windows_meta.append(list(itertools.islice(snake_meta, left, right)))
 
-    batch_tensor = torch.tensor(windows_ids, dtype=torch.long, device=dev)
-    nll_batch    = nll_for(batch_tensor).numpy()         # [B, 2047] #maybe dont need to take out of pytorch
+        batch_tensor = torch.tensor(windows_ids, dtype=torch.long, device=dev)
+        nll_batch    = nll_for(batch_tensor).numpy()         # [B, 2047] #maybe dont need to take out of pytorch
 
-    # ── 5-C. Scatter losses into per-doc matrices ───────────────────────────
-    for b in range(BATCH):
-        meta_slice = windows_meta[b]
-        for k in range(1, CTX):
-            meta = meta_slice[k]
-            if meta is None:
-                continue
-            doc_id, tok_idx = meta
-            active_docs[doc_id]["matrix"][tok_idx, k-1] = nll_batch[b, k-1]
-        #We could implement following speedup, but time spent on saving into files is minimal so not worth the time.
-        #active_docs[doc_id]["matrix"][tok_idx, :CTX] = nll_batch[b, :CTX].where()
+        # ── 5-C. Scatter losses into per-doc matrices ───────────────────────────
+        for b in range(BATCH):
+            meta_slice = windows_meta[b]
+            for k in range(1, CTX):
+                meta = meta_slice[k]
+                if meta is None:
+                    continue
+                doc_id, tok_idx = meta
+                active_docs[doc_id]["matrix"][tok_idx, k-1] = nll_batch[b, k-1]
+            #We could implement following speedup, but time spent on saving into files is minimal so not worth the effort.
+            #active_docs[doc_id]["matrix"][tok_idx, :CTX] = nll_batch[b, :CTX].where()
 
     # ── 5-D. Slide right: pop BATCH tokens from the tail ────────────────────
     for _ in range(BATCH):
@@ -126,12 +129,20 @@ while True:
     finished = [d for d in active_docs if d not in current_doc_ids]
     for d in finished:
         out_path = f"D:/NLL_matrices/{MODEL_SIZE}/doc{d}.h5"
-        with h5py.File(out_path, "w") as f:
-            f.create_dataset("nll",
-                             data=active_docs[d]["matrix"],
-                             compression="gzip")
-        print(f"[INFO] saved doc {d} → {out_path}")
-        del active_docs[d]; docs_done += 1
+
+        # --- NEW: skip writing if file already exists -------------------
+        if _osp.exists(out_path):
+            print(f"[SKIP] {out_path} already on disk - keeping previous result")
+        else:
+            with h5py.File(out_path, "w") as f:
+                f.create_dataset("nll",
+                                data=active_docs[d]["matrix"],
+                                compression="gzip")
+            print(f"[INFO] saved doc {d} → {out_path}")
+
+        # always remove in-memory copy to free RAM
+        del active_docs[d]
+        docs_done += 1
 
     # ── 5‑F. Logging shifts ───────────────────────────────────────
     if shift % 300 == 0:

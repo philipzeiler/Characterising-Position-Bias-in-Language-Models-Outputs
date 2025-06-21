@@ -23,7 +23,7 @@ sum_mat  = np.zeros((GRID_Y, GRID_Y), dtype=np.float64)  # sum of NLLs
 cnt_mat  = np.zeros((GRID_Y, GRID_Y), dtype=np.int32)    # how many token hits
 
 # -------------- iterate over HDF5 matrices -------------
-FOLDER = "D:/NLL_matrices/1_4B"
+FOLDER = "D:/NLL_matrices/2.8B"
 paths  = glob.glob(os.path.join(FOLDER, "*.h5"))
 if not paths:
     raise RuntimeError("No .h5 files found")
