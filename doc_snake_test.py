@@ -24,11 +24,11 @@ torch.backends.cudnn.allow_tf32       = False
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX        = 2048   # window length
 BATCH      = 1      # batch size (maybe set to power of 2)
-MODEL_SIZE = "1.4B"
+MODEL_SIZE = "2.8B"
 MODEL_ID   = f"EleutherAI/pythia-{MODEL_SIZE}"
 REVISION   = "step143000"    #"step143000" is the final revision
 n_docs     = 5000            # evaluate this many docs
-QUICKSTART_FROM = 4799          # if code was interrupted, restart by entering how many files you already have
+QUICKSTART_FROM = 3190          # if code was interrupted, restart by entering how many files you already have
 
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
