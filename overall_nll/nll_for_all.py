@@ -6,7 +6,7 @@ import glob, os, h5py, numpy as np, pandas as pd
 import seaborn as sns, matplotlib.pyplot as plt
 from tqdm import tqdm
 
-FOLDER = "D:/NLL_matrices/1_4B"
+FOLDER = "D:/NLL_matrices/1.4B"
 paths  = glob.glob(os.path.join(FOLDER, "*.h5"))
 if not paths:
     raise RuntimeError("no .h5 files found")
