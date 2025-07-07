@@ -11,7 +11,7 @@ from transformers import GPTNeoXForCausalLM, AutoTokenizer
 import os.path as _osp
 
 # ── 0. Determinism flags ────────────────────────────────────────────────────
-seed, doc_seed = 42, 753
+seed, doc_seed = 42, 753    #set these for reproducibility
 torch.manual_seed(seed); random.seed(seed); np.random.seed(seed)
 torch.cuda.manual_seed_all(seed)
 torch.use_deterministic_algorithms(True)
@@ -24,12 +24,16 @@ torch.backends.cudnn.allow_tf32       = False
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX        = 2048   # window length
 BATCH      = 1      # batch size (maybe set to power of 2)
-MODEL_SIZE = "2.8B"
+MODEL_SIZE = "1.4B"
 MODEL_ID   = f"EleutherAI/pythia-{MODEL_SIZE}"
 REVISION   = "step143000"    #"step143000" is the final revision
 n_docs     = 5000            # evaluate this many docs
-QUICKSTART_FROM = 3190          # if code was interrupted, restart by entering how many files you already have
+ADD_EOD = True               # set True to append eos_id to every document
+QUICKSTART_FROM = 0          # if code was interrupted, restart by entering how many files you already have
 
+
+if(ADD_EOD):                #if we add EOS token, store those results separately
+    MODEL_SIZE=f"{MODEL_SIZE}_EOS"
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────
 dev   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = GPTNeoXForCausalLM.from_pretrained(
@@ -78,6 +82,11 @@ while True:
             doc_id = doc_order[docs_entered]; docs_entered += 1
             tokens = tok(val_ds[doc_id]["text"],
                           return_tensors="pt").input_ids[0]
+            
+            if ADD_EOD:
+                tokens = torch.cat([    tokens,
+                                        torch.tensor([eos_id],
+                                        dtype=tokens.dtype)])
             L      = len(tokens)
             active_docs[doc_id] = {
             #    "tokens": tokens,                            # tokens currently unused but may be useful in the future
