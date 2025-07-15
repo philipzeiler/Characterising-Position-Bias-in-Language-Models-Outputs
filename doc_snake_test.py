@@ -22,16 +22,19 @@ torch.backends.cuda.matmul.allow_tf32 = False
 torch.backends.cudnn.allow_tf32       = False
 
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
-CTX        = 2048   # window length
-BATCH      = 1      # batch size (maybe set to power of 2)
+CTX        = 2048   # window length, should not be changed
+BATCH      = 1      # batch size (maybe set to power of 2), higher consumes more vram, had limited speedup in my testing
 MODEL_SIZE = "1.4B"
-MODEL_ID   = f"EleutherAI/pythia-{MODEL_SIZE}"
 REVISION   = "step143000"    #"step143000" is the final revision
 n_docs     = 5000            # evaluate this many docs
-ADD_EOD = True               # set True to append eos_id to every document
 QUICKSTART_FROM = 0          # if code was interrupted, restart by entering how many files you already have
+DEDUPED = True
+ADD_EOD = True               # set True to append eos_id to every document
 
-
+MODEL_ID   = f"EleutherAI/pythia-{MODEL_SIZE}"
+if(DEDUPED):
+    MODEL_ID=f"{MODEL_ID}-deduped"
+    MODEL_SIZE=f"{MODEL_SIZE}_deduped"
 if(ADD_EOD):                #if we add EOS token, store those results separately
     MODEL_SIZE=f"{MODEL_SIZE}_EOS"
 # ── 2. Model & tokenizer ────────────────────────────────────────────────────

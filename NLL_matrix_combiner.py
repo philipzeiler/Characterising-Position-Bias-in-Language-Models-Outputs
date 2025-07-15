@@ -8,9 +8,9 @@ from tqdm import tqdm, trange
 import random
 
 # ---------------- parameters -----------------------------------------------
-MODEL_SIZE = "410M"
-SRC_DIR    = f"D:/NLL_matrices/{MODEL_SIZE}"
-DST_FILE   = f"D:/NLL_matrices/{MODEL_SIZE}_merged.h5"
+MODEL_SIZE = "1.4B"
+SRC_DIR    = f"D:/NLL_matrices/{MODEL_SIZE}_EOS"
+DST_FILE   = f"D:/NLL_matrices/{MODEL_SIZE}_EOS_merged.h5"
 
 CTX          = 2048          # window length → 2047 cols
 CHUNK_ROWS   = 1024          # row-aligned stripe

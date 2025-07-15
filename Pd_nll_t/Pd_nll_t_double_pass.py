@@ -19,8 +19,8 @@ import seaborn as sns, matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # ---------------------------------------------------------------- parameters
-MERGED_H5   = "D:/NLL_matrices/1.4B_merged.h5"
-FILE_LIMIT  = 5000          # how many docs to scan
+MERGED_H5   = "D:/NLL_matrices/1.4B_EOS_merged.h5"
+FILE_LIMIT  = 2740          # how many docs to scan
 #Y_MAX       = 10           # (disabled in filters below)
 PD_MIN, PD_MAX = -2_047, 2_047
 
