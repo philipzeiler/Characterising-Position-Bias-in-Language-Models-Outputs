@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import seaborn as sns
 
+
 # ---------------- parameters ---------------------------
 CTX          = 2048
 PD_MIN       = -3952               # left bound on x-axis
@@ -23,7 +24,7 @@ sum_mat  = np.zeros((GRID_Y, GRID_Y), dtype=np.float64)  # sum of NLLs
 cnt_mat  = np.zeros((GRID_Y, GRID_Y), dtype=np.int32)    # how many token hits
 
 # -------------- iterate over HDF5 matrices -------------
-FOLDER = "D:/NLL_matrices/2.8B"
+FOLDER = "D:/NLL_matrices/1.4B_EOD"
 paths  = glob.glob(os.path.join(FOLDER, "*.h5"))
 if not paths:
     raise RuntimeError("No .h5 files found")
@@ -63,30 +64,37 @@ mean_mat = np.divide(sum_mat, cnt_mat,
 LEFT  = CTX - 6000                # 2048 - 6000 = -3952
 RIGHT = 2048
 
-# -------------- plot -----------------------------------
+import matplotlib as mpl                      # already have pyplot imported
+
+# … earlier code unchanged …
+
+# -------------------- plot -----------------------------------
 sns.set_theme(style="white")
 plt.figure(figsize=(8, 8))
 
-vmax_auto = np.nanmax(mean_mat)    #dynamic top of colour map
-vmax_auto = 3 #I hardcoded it for testing
+# --- colour scale -------------------------------------------
+vmin, vmax = 2, 7                           # ← floor is now exactly 1
+norm = mpl.colors.LogNorm(vmin=vmin, vmax=vmax)
+
 cmap = sns.color_palette("RdYlGn_r", as_cmap=True)
 
-im = plt.imshow(mean_mat,
-                origin="lower",
-                extent=[LEFT, RIGHT,
-                        0, GRID_Y-1],
-                aspect="auto",
-                cmap=cmap,
-                vmin=0, vmax=vmax_auto,      #dynamic vmax
-                rasterized=True)
+im = plt.imshow(
+        mean_mat,
+        origin="lower",
+        extent=[LEFT, RIGHT, 0, GRID_Y-1],
+        aspect="auto",
+        cmap=cmap,
+        norm=norm,                          # use logarithmic mapping
+        rasterized=True)
 
-plt.colorbar(im, label="mean NLL (nats)")
+cbar = plt.colorbar(im, label="mean NLL (nats)")
+cbar.set_ticks([2, 4, 7])                # log-spaced ticks ≥ 1
+
+
 plt.xlabel(f"P_d  (document start, {LEFT} … {RIGHT})")
 plt.ylabel("t  (token index inside document)")
 
-# optional: nicer tick marks
 plt.xticks([LEFT, LEFT//2, 0, RIGHT//2, RIGHT])
-
 plt.tight_layout()
-plt.savefig("nll_pd_t_heatmap_test.png", dpi=1200)
+#plt.savefig("nll_pd_t_heatmap_log.png", dpi=1200)
 plt.show()

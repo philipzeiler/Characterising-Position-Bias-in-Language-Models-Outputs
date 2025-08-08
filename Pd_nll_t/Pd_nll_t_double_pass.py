@@ -14,20 +14,42 @@ Revision  ▸  log₂ x-axis  ▸  extended t-bins
 * `T_EDGES` automatically spans powers-of-two up to 2048 and then ∞.
 """
 
+
+"""
+The shaded band around each line defaults to a 95% bootstrap confidence interval for the mean. 
+Seaborn aggregates y at each x using the mean and then draws the 95% CI around that estimate by bootstrapping; 
+you can turn it off or switch to other intervals with 
+errorbar=... (e.g., None, "sd", "se", or ("ci", 99) for a 99% CI).
+seaborn.pydata.org
+
+How to interpret it: the band shows uncertainty in the estimated mean at each x, 
+not the spread of the raw data and not a prediction interval. 
+If you repeatedly resampled your dataset and re-estimated the mean, 
+~95% of those CIs would cover the true mean (frequentist interpretation). 
+Its not “±1 std dev,” and it doesnt say where new observations will fall. 
+"""
+
 import h5py, numpy as np, pandas as pd, math
 import seaborn as sns, matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # ---------------------------------------------------------------- parameters
-MERGED_H5   = "D:/NLL_matrices/1.4B_EOS_merged.h5"
-FILE_LIMIT  = 2740          # how many docs to scan
+MODEL_NAME  = "Pythia 1.4B deduped"
+MERGED_H5   = "D:/NLL_matrices/1.4B_deduped_merged.h5"
+FILE_LIMIT  = 5000          # how many docs to scan
 #Y_MAX       = 10           # (disabled in filters below)
 PD_MIN, PD_MAX = -2_047, 2_047
 
 # dynamic powers‑of‑two bucket edges ------------------------------------------------
-T_EDGES = [0, 1] + [2**k for k in range(1, 12)] + [math.inf]  # <-- CHANGED
-T_LABELS = [f"{T_EDGES[i]}–{T_EDGES[i+1]-1}" if math.isfinite(T_EDGES[i+1])
-            else f"{T_EDGES[i]}+" for i in range(len(T_EDGES)-1)]
+T_EDGES = [0, 1] + [2**k for k in range(1, 12)] + [math.inf]
+T_LABELS = [
+    f"{T_EDGES[i]}"                                   # show just “0”, “1”
+    if T_EDGES[i] + 1 == T_EDGES[i + 1]               # width-1 bin?
+    else f"{T_EDGES[i]}–{T_EDGES[i + 1] - 1}"         # closed range
+    if math.isfinite(T_EDGES[i + 1])                  # finite upper edge
+    else f"{T_EDGES[i]}+"                             # open-ended last bin
+    for i in range(len(T_EDGES) - 1)
+]
 
 rng = np.random.default_rng(seed=0)
 
@@ -115,19 +137,32 @@ flat = [row for buf in reservoir.values() for row in buf]
 df_plot = pd.DataFrame(flat, columns=["P_d", "NLL", "t_bin"])
 
 sns.set_theme(style="whitegrid")
-plt.figure(figsize=(12, 4))
+plt.figure(figsize=(20, 10))
 ax = sns.lineplot(data=df_plot, x="P_d", y="NLL", hue="t_bin",
                   palette="viridis")
 
 # log₂ x‑axis ---------------------------------------------------------------
 ax.set_xscale('symlog', base=2, linthresh=2)
 ax.set_xlim(PD_MIN, PD_MAX)
+ax.set_ylim(0, 18)
+
+ax.legend(title="Token position within document",
+          loc="upper left",       # pin inside axes, upper-left corner
+          bbox_to_anchor=(0.02, 0.98),  # small padding from edges
+          borderaxespad=0)
+
 ax.get_xaxis().set_major_formatter(plt.ScalarFormatter())
 ax.set_xticks([-2048,-1024,-512,-256,-128,-64,-32,-16,-8,-4,-2,-1, 0, 1,2,4,8,16,32,64,128,256,512,1024,2048])
 
-plt.xlabel("P_d  (log2 scale - doc-start position in context window)")
-plt.ylabel("NLL (nats)")
+plt.xlabel("Document start position relative to context window")
+plt.ylabel("Negative Log Likelihood")
 plt.title(
-    f"NLL vs P_d  ({N_target:,} rows per t-bin, stratified, log2 x-axis)")
+    f"{MODEL_NAME}: {N_target:,} tokens randomly sampled per token position bin")
 plt.tight_layout()
+plt.savefig(
+    f"D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/{MODEL_NAME}_Pd_nll_t.pdf",
+    format="pdf",                     # ← explicit, but not strictly required
+    bbox_inches="tight",              # trims white margins
+)
+
 plt.show()

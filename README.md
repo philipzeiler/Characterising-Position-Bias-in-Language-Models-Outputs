@@ -23,3 +23,50 @@ nll_for_all: Generates a graph of the NLLs of all docs over every position withi
 nll_for_no_filler: Similar to nll_for_all but focuses on those tokens which never see any filler (meaning the only context they ever have is from their own doc, never from another).
 
 nll_for_small_doc: Similar to nll_for_all but focuses on those documents which are shorter thann 500 tokens in order to see how how the filler from other random docs effects the NLL.
+
+
+config file:
+
+Host armin.inf.ethz.ch
+  HostName armin.inf.ethz.ch
+  User pzeiler
+
+Commands for the cluster:
+
+Anaconda:
+
+# 1  Download the latest Miniconda installer (≈ 60 MB) into your home folder
+
+cd ~                                 
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+
+
+# 2  Run the installer in **batch** mode (-b) and point it to ~/miniconda3 (-p)
+
+bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
+
+# 3  Initialise your shell so the `conda` command is known on future logins
+
+$HOME/miniconda3/bin/conda init bash   # adds a few lines to ~/.bashrc
+source ~/.bashrc                       # activate changes in this shell
+
+# 4  Create & enter a fresh env for your project
+
+conda create -n Pythia310 python=3.10 -y
+conda activate Pythia310
+
+If you ever switch shells or open a new session
+
+Just run:
+
+source ~/.bashrc
+conda activate pythia
+
+Start with:
+export PATH=/usr/local/cuda-12.9/bin:$PATH
+
+export PATH=/usr/local/cuda-11.8/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+Watch GPU usage:
+watch -n 1 nvidia-smi

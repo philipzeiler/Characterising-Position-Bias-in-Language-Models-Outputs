@@ -15,8 +15,8 @@ import seaborn as sns, matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # ---------------------------------------------------------------- parameters
-MERGED_H5   = "D:/NLL_matrices/1.4B_merged.h5"
-FILE_LIMIT  = 5_00          # how many docs to scan
+MERGED_H5   = "D:/NLL_matrices/14M_EOD_merged.h5"
+FILE_LIMIT  = 5000          # how many docs to scan
 Y_MAX       = 10           # currently disabled because it removes most of the tokens from 0-0 bucket.
 PD_MIN, PD_MAX = 0, 2_047
 T_EDGES = [0, 1, 2, 4, 8, 16, 32, 64, 128, math.inf]
