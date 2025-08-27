@@ -34,14 +34,15 @@ import seaborn as sns, matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # ---------------------------------------------------------------- parameters
-MODEL_NAME  = "Pythia 1.4B deduped"
-MERGED_H5   = "D:/NLL_matrices/1.4B_deduped_merged.h5"
+MODEL_NAME  = "Pythia 2.8B deduped EOD"
+MERGED_H5   = "D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"   #size_EOD_merged.h5
 FILE_LIMIT  = 5000          # how many docs to scan
 #Y_MAX       = 10           # (disabled in filters below)
 PD_MIN, PD_MAX = -2_047, 2_047
+#-1023, 1023
 
 # dynamic powers‑of‑two bucket edges ------------------------------------------------
-T_EDGES = [0, 1] + [2**k for k in range(1, 12)] + [math.inf]
+T_EDGES = [0, 1] + [2**k for k in range(1, 11)] + [math.inf]#12 for pythia, 11 for gpt2
 T_LABELS = [
     f"{T_EDGES[i]}"                                   # show just “0”, “1”
     if T_EDGES[i] + 1 == T_EDGES[i + 1]               # width-1 bin?
@@ -137,6 +138,8 @@ flat = [row for buf in reservoir.values() for row in buf]
 df_plot = pd.DataFrame(flat, columns=["P_d", "NLL", "t_bin"])
 
 sns.set_theme(style="whitegrid")
+sns.set_context("paper", font_scale=2.1)
+
 plt.figure(figsize=(20, 10))
 ax = sns.lineplot(data=df_plot, x="P_d", y="NLL", hue="t_bin",
                   palette="viridis")

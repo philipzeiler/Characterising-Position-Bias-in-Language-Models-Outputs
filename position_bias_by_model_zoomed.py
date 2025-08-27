@@ -9,8 +9,8 @@ Mean *ΔNLL* vs context-window position  (aligned at P_t = 500)
 
 Optional filters
 ~~~~~~~~~~~~~~~~
-  – `FILTER_PD_NONNEG`  keep only windows with full left context (P_d ≥ 0)  
-  – `MAX_DOC_LEN`       skip documents longer than N tokens  
+  - `FILTER_PD_NONNEG`  keep only windows with full left context (P_d ≥ 0)  
+  - `MAX_DOC_LEN`       skip documents longer than N tokens  
 """
 
 import numpy as np, h5py, matplotlib.pyplot as plt, seaborn as sns, matplotlib as mpl
@@ -18,14 +18,56 @@ from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
 MODELS = [
-    ("Pythia 14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
-    ("Pythia 31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
-    ("Pythia 70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
-    ("Pythia 160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
-    ("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
-    ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
-    ("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
-    ("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
+    #("Pythia 14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
+    #("Pythia 31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
+    #("Pythia 70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
+    #("Pythia 70M (no EOD)",  r"D:/NLL_matrices/70M_merged.h5"),
+    #("Pythia 160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
+    #("Pythia 160M (no EOD)", r"D:/NLL_matrices/160M_merged.h5"),
+    #("Pythia 410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
+    #("Pythia 410M (no EOD)", r"D:/NLL_matrices/410M_merged.h5"),
+    #("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
+    #("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+    #("Pythia 1.4B (no EOD)", r"D:/NLL_matrices/1.4B_merged.h5"),
+    #("Pythia 1.4B deduped", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
+    #("Pythia 2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
+    #("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
+    #("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
+    # ("Step 0",  r"D:/NLL_matrices/revisions/14M_EOD/step0_merged.h5"),
+    # ("Step 1",  r"D:/NLL_matrices/revisions/14M_EOD/step1_merged.h5"),
+    # ("Step 2",  r"D:/NLL_matrices/revisions/14M_EOD/step2_merged.h5"),
+    # ("Step 4",  r"D:/NLL_matrices/revisions/14M_EOD/step4_merged.h5"),
+    # ("Step 8",  r"D:/NLL_matrices/revisions/14M_EOD/step8_merged.h5"),
+    # ("Step 16",  r"D:/NLL_matrices/revisions/14M_EOD/step16_merged.h5"),
+    # ("Step 32",  r"D:/NLL_matrices/revisions/14M_EOD/step32_merged.h5"),
+    # ("Step 64",  r"D:/NLL_matrices/revisions/14M_EOD/step64_merged.h5"),
+    # ("Step 128",  r"D:/NLL_matrices/revisions/14M_EOD/step128_merged.h5"),
+    # ("Step 256",  r"D:/NLL_matrices/revisions/14M_EOD/step256_merged.h5"),
+    # ("Step 512",  r"D:/NLL_matrices/revisions/14M_EOD/step512_merged.h5"),
+    # ("Step 1000",  r"D:/NLL_matrices/revisions/14M_EOD/step1000_merged.h5"),
+    # ("Step 2000",  r"D:/NLL_matrices/revisions/14M_EOD/step2000_merged.h5"),
+    # ("Step 4000",  r"D:/NLL_matrices/revisions/14M_EOD/step4000_merged.h5"),
+    # ("Step 8000",  r"D:/NLL_matrices/revisions/14M_EOD/step8000_merged.h5"),
+    # ("Step 16000",  r"D:/NLL_matrices/revisions/14M_EOD/step16000_merged.h5"),
+    # ("Step 32000",  r"D:/NLL_matrices/revisions/14M_EOD/step32000_merged.h5"),
+    # ("Step 64000",  r"D:/NLL_matrices/revisions/14M_EOD/step64000_merged.h5"),
+    # ("Step 128000",  r"D:/NLL_matrices/revisions/14M_EOD/step128000_merged.h5"),
+    # ("Step 143000",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
+    #("OLMo 2 1B", r"D:/NLL_matrices/0425-1B_EOD_merged.h5"),
+    #("OLMo 2 1B (full eval)", r"D:/NLL_matrices/0425-1B_FULL_EVAL_EOD_merged.h5"),
+    #("OLMo 2 7B", r"D:/NLL_matrices/1124-7B_EOD_merged.h5"),
+    #("OLMo 2 13B", r"D:/NLL_matrices/1124-13B_EOD_merged.h5"),
+    #("gpt2-small", r"D:/NLL_matrices/gpt2_merged.h5"),
+    #("gpt2-medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
+    ("70M",  r"D:/NLL_matrices/70M_deduped_merged.h5"),
+    ("160M", r"D:/NLL_matrices/160M_deduped_merged.h5"),
+    ("410M", r"D:/NLL_matrices/410M_deduped_merged.h5"),
+    ("1B",   r"D:/NLL_matrices/1B_deduped_merged.h5"),
+    ("1.4B", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
+    ("2.8B", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
+    ("2.8B EOD", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
+    ("6.9B", r"D:/NLL_matrices/6.9B_deduped_merged.h5"),
+    ("12B",  r"D:/NLL_matrices/12B_deduped_merged.h5"),
 ]
 
 CTX              = 2048      # sliding-window length
@@ -37,6 +79,7 @@ P_START          = 500       # reference position for alignment (1-based)
 # ─────────────────────────────────────────────────────────────────────────────
 
 sns.set_theme(style="whitegrid")
+sns.set_context("paper", font_scale=2.1)
 fig, ax = plt.subplots(figsize=(20, 10))
 
 # --- colour palette: neighbours get similar hues ---------------------------
@@ -70,7 +113,7 @@ for idx, (name, h5_path) in enumerate(MODELS):
             # --- build coordinates for every evaluated window ----------------
             rows = np.repeat(np.arange(L, dtype=np.int32), CTX - 1)  # token index t
             cols = np.tile(np.arange(CTX - 1, dtype=np.int32), L)    # offset k-1
-            P_t  = cols + 1                                          # 1 … 2048
+            P_t  = cols + 2                                          # 1 … 2048
             P_d  = P_t - rows                                        # dist. from doc start
 
             keep = P_t <= CTX                                        # stays inside window
@@ -81,11 +124,12 @@ for idx, (name, h5_path) in enumerate(MODELS):
                 continue
             docs_used += 1
 
-            p_idx   = P_t[keep] - 1          # 0-based index (0 … 2047)
-            nll_val = mat.ravel()[keep]      # matching NLL values
+            p_idx   = P_t[keep] - 1                 # 1..2047
+            nll_val = mat.ravel()[keep]
+            m       = np.isfinite(nll_val)          # mask finite values only
 
-            np.add.at(sum_p,   p_idx, nll_val)   # add to ΣNLL per position
-            np.add.at(count_p, p_idx, 1)         # increment counter
+            np.add.at(sum_p,   p_idx[m], nll_val[m])
+            np.add.at(count_p, p_idx[m], 1)
 
     # --- mean NLL per P_t for this model ------------------------------------
     mean_p   = np.where(count_p > 0, sum_p / count_p, np.nan)
@@ -101,18 +145,22 @@ for idx, (name, h5_path) in enumerate(MODELS):
 
     model_docs_used[name] = docs_used
     # --- plot curve (P_t ≥ P_START) -----------------------------------------
+    label = rf"{name}  ($\mathrm{{NLL}}_{{\mathrm{{base}}}} = {baseline:.2f}$)"
+
     ax.plot(
         np.arange(P_START, CTX + 1),
         shifted[P_START - 1:],
         color=colours[idx],
         linewidth=2.0,
-        label=f"{name}  (NLL baseline = {baseline:.3f})",
+        label=label,
     )
 
 # ─────────────────────── axis formatting & legend ───────────────────────────
 # x-axis
 ax.set_xlim(P_START, CTX)
-ax.set_xticks([500, 768, 1024, 1280, 1536, 1792, 2048])
+ax.set_xticks([500, 768, 1024, 1280, 1536, 1792, 2048
+               #, 2304, 2560, 2816, 3072, 3328, 3584, 3840, 4096
+               ])
 ax.set_xlabel("Token position within 2048-token context window")
 
 # y-axis : 10 evenly-spaced ticks, guaranteed to include 0
@@ -146,11 +194,12 @@ avg_docs = (sum(model_docs_used.values()) /
 
 # title & save
 #ax.set_title(f"Average of {round(avg_docs)} documents used per model")
-ax.set_title(f"Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
+ax.set_title("12B: 602 docs, 6.9B: 704 docs, rest > 2200 docs")
+#(f"Pythia 14M: 264 docs used per checkpoint")
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/position_bias_aligned.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/position_bias_by_model_pythia_deduped_28EOD.pdf",
     format="pdf",
     bbox_inches="tight",
 )

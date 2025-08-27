@@ -27,7 +27,7 @@ BATCH      = 1      # batch size (maybe set to power of 2), higher consumes more
 MODEL_SIZE = "0425-1B"
 #REVISION   = "step143000"    #Ill stick to the latest for now
 n_docs     = 50000            # evaluate this many docs
-QUICKSTART_FROM = 500          # if code was interrupted, restart by entering how many files you already have
+QUICKSTART_FROM = 1245          # if code was interrupted, restart by entering how many files you already have
 ADD_EOD = True               # set True to append eos_id to every document
 
 #CLUSTER CHANGES:

@@ -27,8 +27,8 @@ PD_MAX    =  2047
 SMOOTH_W  = 1
 Y_MAX     = 10
 FILE_LIM  = 5000
-MODEL_NAME = "Pythia 12B"
-MERGED_H5 = "D:/NLL_matrices/12B_EOD_merged.h5"
+MODEL_NAME = "Pythia 160M"
+MERGED_H5 = "D:/NLL_matrices/160M_EOD_merged.h5"
 
 # ────────────────────────────────────────────────────────────────────────────
 # Log-spaced P_d bin edges: 0, ±1, ±2, ±4 …         (powers of two)
@@ -50,6 +50,7 @@ idx_norm  = mpl.colors.Normalize(vmin=0, vmax=n_bins - 1)    # <-- CHANGED
 
 sns.set_theme(style="whitegrid")
 fig, ax = plt.subplots(figsize=(20, 10))
+sns.set_context("paper", font_scale=2.1)
 
 # ────────────────────────────── Pass 0: count rows per bin ──────────────────
 bin_counts = np.zeros(n_bins, dtype=np.int64)

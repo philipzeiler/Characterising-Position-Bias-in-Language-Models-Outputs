@@ -1,7 +1,7 @@
 import h5py, numpy as np, pandas as pd
 from pathlib import Path
 
-MERGED = Path(r"D:/NLL_matrices/1.4B_deduped_EOS_merged_2600_docs.h5")  # adjust if needed
+MERGED = Path(r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5")  # adjust if needed
 
 with h5py.File(MERGED, "r") as f:
     nll_ds = f["nll"]                 # shape: (N_tokens_total, 2047)
