@@ -18,21 +18,16 @@ from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
 MODELS = [
-    #("Pythia 14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
-    #("Pythia 31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
-    #("Pythia 70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
-    #("Pythia 70M (no EOD)",  r"D:/NLL_matrices/70M_merged.h5"),
-    #("Pythia 160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
-    #("Pythia 160M (no EOD)", r"D:/NLL_matrices/160M_merged.h5"),
-    #("Pythia 410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
-    #("Pythia 410M (no EOD)", r"D:/NLL_matrices/410M_merged.h5"),
-    #("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
-    #("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
-    #("Pythia 1.4B (no EOD)", r"D:/NLL_matrices/1.4B_merged.h5"),
-    #("Pythia 1.4B deduped", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
-    #("Pythia 2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
-    #("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
-    #("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
+    # ("Pythia 14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
+    # ("Pythia 31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
+    # ("Pythia 70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
+    # ("Pythia 160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
+    # ("Pythia 410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
+    # ("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
+    # ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+    # ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
+    # ("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
+    # ("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
     # ("Step 0",  r"D:/NLL_matrices/revisions/14M_EOD/step0_merged.h5"),
     # ("Step 1",  r"D:/NLL_matrices/revisions/14M_EOD/step1_merged.h5"),
     # ("Step 2",  r"D:/NLL_matrices/revisions/14M_EOD/step2_merged.h5"),
@@ -64,8 +59,8 @@ MODELS = [
     ("410M", r"D:/NLL_matrices/410M_deduped_merged.h5"),
     ("1B",   r"D:/NLL_matrices/1B_deduped_merged.h5"),
     ("1.4B", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
-    ("2.8B", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
-    ("2.8B EOD", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
+    #("2.8B", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
+    ("2.8B with EOD", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
     ("6.9B", r"D:/NLL_matrices/6.9B_deduped_merged.h5"),
     ("12B",  r"D:/NLL_matrices/12B_deduped_merged.h5"),
 ]
@@ -137,6 +132,22 @@ for idx, (name, h5_path) in enumerate(MODELS):
     shifted  = mean_p - baseline              # ΔNLL so that start == 0
     shifted[P_START - 1] = 0.0                # force exact zero (numeric hygiene)
 
+    # --- NEW: position-bias metric (max Δ − min Δ over plotted range) -------
+    # Uses NaN-ignoring reductions to avoid sparse/NaN columns skewing results.
+    slice_vals = shifted[P_START - 1:]  # plotted range: P_t ∈ [P_START, CTX]
+    if np.isfinite(slice_vals).any():
+        y_min = np.nanmin(slice_vals)                      # ignore NaNs
+        y_max = np.nanmax(slice_vals)
+        i_min = int(np.nanargmin(slice_vals))              # index within slice
+        i_max = int(np.nanargmax(slice_vals))
+        pt_min = P_START + i_min
+        pt_max = P_START + i_max
+        pos_bias = y_max - y_min                           # absolute range
+        print(f"[POSBIAS] {name}: min={y_min:.6f} @ P_t={pt_min}, "
+              f"max={y_max:.6f} @ P_t={pt_max}, Δ={pos_bias:.6f}")
+    else:
+        print(f"[POSBIAS] {name}: no finite values in plotted range; skipping.")
+
     # --- update global min / max --------------------------------------------
     valid_vals = shifted[P_START - 1:][np.isfinite(shifted[P_START - 1:])]
     if valid_vals.size:
@@ -194,12 +205,14 @@ avg_docs = (sum(model_docs_used.values()) /
 
 # title & save
 #ax.set_title(f"Average of {round(avg_docs)} documents used per model")
-ax.set_title("12B: 602 docs, 6.9B: 704 docs, rest > 2200 docs")
+ax.set_title("Pythia deduped models - 12B: 602 docs, 6.9B: 704 docs, 2.8B: 641 docs, rest: 2814 docs")
+#("Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
+
 #(f"Pythia 14M: 264 docs used per checkpoint")
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/position_bias_by_model_pythia_deduped_28EOD.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/position_bias_by_model_pythia_deduped.pdf",
     format="pdf",
     bbox_inches="tight",
 )

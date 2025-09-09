@@ -26,8 +26,8 @@ CTX        = 2048   # window length, should not be changed
 BATCH      = 1      # batch size (maybe set to power of 2), higher consumes more vram, had limited speedup in my testing
 MODEL_SIZE = "2.8B"
 REVISION   = "step143000"    #"step143000" is the final revision
-n_docs     = 1000            # evaluate this many docs
-QUICKSTART_FROM = 0          # if code was interrupted, restart by entering how many files you already have
+n_docs     = 5000            # evaluate this many docs
+QUICKSTART_FROM = 1188          # if code was interrupted, restart by entering how many files you already have
 DEDUPED = True
 ADD_EOD = True               # set True to append eos_id to every document
 

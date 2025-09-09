@@ -18,8 +18,8 @@ CTX            = 2048                      # → 2047 cols
 
 # --- GPT-2 overrides (edit paths as needed) --------------------------------
 # GPT-2 uses a 1024-token window → 1023 columns
-GPT2_SRC_DIR   = r"D:/NLL_matrices/gpt2-large"
-GPT2_DST_FILE  = r"D:/NLL_matrices/gpt2-large_merged.h5"
+GPT2_SRC_DIR   = r"D:/NLL_matrices/gpt2-xl"
+GPT2_DST_FILE  = r"D:/NLL_matrices/gpt2-xl_merged.h5"
 WEBTEXT_VALID  = r"D:/datasets/webtext.test.jsonl"  # from OpenAI repo
 
 # ---------------- set up according to switch --------------------------------

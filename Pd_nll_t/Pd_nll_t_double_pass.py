@@ -34,7 +34,7 @@ import seaborn as sns, matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # ---------------------------------------------------------------- parameters
-MODEL_NAME  = "Pythia 2.8B deduped EOD"
+MODEL_NAME  = "Pythia 2.8B deduped"
 MERGED_H5   = "D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"   #size_EOD_merged.h5
 FILE_LIMIT  = 5000          # how many docs to scan
 #Y_MAX       = 10           # (disabled in filters below)
@@ -42,7 +42,7 @@ PD_MIN, PD_MAX = -2_047, 2_047
 #-1023, 1023
 
 # dynamic powers‑of‑two bucket edges ------------------------------------------------
-T_EDGES = [0, 1] + [2**k for k in range(1, 11)] + [math.inf]#12 for pythia, 11 for gpt2
+T_EDGES = [0, 1] + [2**k for k in range(1, 12)] + [math.inf]#12 for pythia, 11 for gpt2
 T_LABELS = [
     f"{T_EDGES[i]}"                                   # show just “0”, “1”
     if T_EDGES[i] + 1 == T_EDGES[i + 1]               # width-1 bin?

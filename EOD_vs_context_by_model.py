@@ -42,7 +42,7 @@ MAX_DOC_LEN         = 500                # None → keep all
 
 P_ALIGN             = 500                # align baseline at this position
 P_START             = 500                # show from this position (no left gap)
-P_END               = N_POS              # always 2047; there is no data at 2048
+P_END               = CTX                # ← show through *2048* on x-axis
 
 # ────────────────────────────────────────────────────────────────────────────
 sns.set_theme(style="whitegrid")
@@ -94,32 +94,37 @@ for idx, (name, h5_path) in enumerate(MODELS):
             else:
                 docs_used += int(valid_len > 0 and np.any(m))
 
-    # mean EOD NLL per position
+    # mean EOD NLL per (k = 1..2047)
     mean_p = np.where(count_p > 0, sum_p / count_p, np.nan)
 
-    # align at P_ALIGN
-    baseline = mean_p[P_ALIGN - 1] if 1 <= P_ALIGN <= N_POS else np.nan
-    shifted  = mean_p - baseline
+    # ── FIX: build a “full” array indexed by *absolute context position* P_t = 1..2048
+    # mean_p holds values for P_t = 2..2048. We place them at indices 2..2048 so
+    # that index == P_t; index 1 (P_t=1) stays NaN (no prediction at the very first position).
+    mean_full = np.full(CTX + 1, np.nan, dtype=np.float64)  # indices 0..2048; ignore index 0
+    mean_full[2:CTX + 1] = mean_p  # map k=1..2047 → P_t=2..2048
+
+    # align at P_ALIGN (which is expressed in absolute P_t coordinates)
+    baseline = mean_full[P_ALIGN] if 1 <= P_ALIGN <= CTX else np.nan
+    shifted  = mean_full - baseline
     if np.isfinite(baseline):
-        shifted[P_ALIGN - 1] = 0.0  # numeric hygiene
+        shifted[P_ALIGN] = 0.0  # numeric hygiene
 
     # restrict to visible range and update global min/max
-    x = np.arange(P_START, P_END + 1)               # e.g., 500..2047
-    y = shifted[P_START - 1 : P_END]                # same length as x
+    x = np.arange(P_START, P_END + 1)         # e.g., 500..2048  (length matches y)
+    y = shifted[P_START : P_END + 1]
     vfin = y[np.isfinite(y)]
     if vfin.size:
         global_min = min(global_min, float(np.min(vfin)))
         global_max = max(global_max, float(np.max(vfin)))
-
+    label = rf"{name}  ($\mathrm{{NLL}}_{{\mathrm{{base}}}} = {baseline:.2f}$)"
     # plot curve
-    label = f"{name}  (baseline={baseline:.3f})" if np.isfinite(baseline) else f"{name}"
     ax.plot(x, y, color=colours[idx], linewidth=2.0, label=label)
     model_docs_used[name] = docs_used
 
 # ─────────────────────── axis formatting & legend ───────────────────────────
-ax.set_xlim(P_START, P_END)  # start exactly at P_START; stop at 2047
+ax.set_xlim(P_START, P_END)  # now truly ends at 2048
 
-# only show ticks inside the visible range
+# show ticks inside the visible range, including 2048
 ticks_all = [500, 768, 1024, 1280, 1536, 1792, 2048]
 ax.set_xticks([t for t in ticks_all if P_START <= t <= P_END])
 ax.set_xlabel("Token position within 2048-token context window")
@@ -128,15 +133,15 @@ ax.set_xlabel("Token position within 2048-token context window")
 if not np.isfinite(global_min) or not np.isfinite(global_max):
     global_min, global_max = 0.0, 1.0
 span   = max(global_max - global_min, 1e-6)
-yticks = np.round(np.linspace(global_min, global_max, 10), 3)
+yticks = np.round(np.linspace(global_min - 0.24 * span, global_max, 12), 3)
 if 0.0 not in yticks:
     yticks = np.sort(np.append(yticks, 0.0))
-ax.set_ylim(global_min - 0.02 * span, global_max + 0.02 * span)
+ax.set_ylim(global_min - 0.30 * span, global_max + 0.02 * span)
 ax.set_yticks(yticks)
-ax.set_ylabel(f"NLL relative to value at context position 500")
+ax.set_ylabel(f"NLL relative to value at context position {P_ALIGN}")
 
 # legend with thicker colour strips
-leg = ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.4)
+leg = ax.legend(loc="lower left", frameon=True, handlelength=4, borderaxespad=0.4)
 for line in leg.get_lines():
     line.set_linewidth(6)
 
