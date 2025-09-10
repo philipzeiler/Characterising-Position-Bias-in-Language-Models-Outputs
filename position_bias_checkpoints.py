@@ -131,7 +131,7 @@ ax.set_xlabel("Training checkpoint")
 ax.set_ylabel("Token output position bias in NLL")
 
 ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.4)
-ax.set_title("264 docs used per checkpoint per model")
+ax.set_title("Pythia standard models: 264 docs used per checkpoint per model")
 
 plt.tight_layout()
 plt.savefig(
