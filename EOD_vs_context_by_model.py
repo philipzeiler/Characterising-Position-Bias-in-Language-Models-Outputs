@@ -18,30 +18,36 @@ import numpy as np, h5py, matplotlib.pyplot as plt, seaborn as sns, matplotlib a
 from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
-MODELS = [("Pythia 14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
-          ("Pythia 31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
-          ("Pythia 70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
-          #("Pythia 70M (no EOD)",  r"D:/NLL_matrices/70M_merged.h5"),
-          ("Pythia 160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
-          # #("Pythia 160M (no EOD)", r"D:/NLL_matrices/160M_merged.h5"),
-          ("Pythia 410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
-          # #("Pythia 410M (no EOD)", r"D:/NLL_matrices/410M_merged.h5"),
-          ("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
-          ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
-          # #("Pythia 1.4B (no EOD)", r"D:/NLL_matrices/1.4B_merged.h5"),
-          # #("Pythia 1.4B deduped", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
-          ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
-          ("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
-          ("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),]
+MODELS = [
+        #   ("Pythia 14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
+        #   ("Pythia 31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
+        #   ("Pythia 70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
+        #   ("Pythia 160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
+        #   ("Pythia 410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
+        #   ("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
+        #   ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+        #   ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
+        #   ("Pythia 2.8B deduped EOD", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
+        #   ("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
+        #   ("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
 
-CTX                 = 2048
+          ("Small", r"D:/NLL_matrices/gpt2_merged.h5"),
+          ("Medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
+          ("Large", r"D:/NLL_matrices/gpt2-large_merged.h5"),
+          ("XL", r"D:/NLL_matrices/gpt2-xl_merged.h5"),
+          ]
+
+
+CTX                 = 1024
 N_POS               = CTX - 1            # positions 1..2047
 FILE_LIM            = 5000               # docs per model (None → all)
 FILTER_PD_FULL_LEFT = False              # if True, require k ≤ L for EOD
-MAX_DOC_LEN         = 500                # None → keep all
+MAX_DOC_LEN         = 300                # None → keep all
+LEGEND_OUTSIDE      = False               # (kept for compatibility, ignored if SPLIT_LEGEND=True)
+SPLIT_LEGEND        = False               # ← NEW: split legend into upper-left & lower-left
 
-P_ALIGN             = 500                # align baseline at this position
-P_START             = 500                # show from this position (no left gap)
+P_ALIGN             = 300                # align baseline at this position
+P_START             = 300                # show from this position (no left gap)
 P_END               = CTX                # ← show through *2048* on x-axis
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -125,7 +131,7 @@ for idx, (name, h5_path) in enumerate(MODELS):
 ax.set_xlim(P_START, P_END)  # now truly ends at 2048
 
 # show ticks inside the visible range, including 2048
-ticks_all = [500, 768, 1024, 1280, 1536, 1792, 2048]
+ticks_all = [300, 500, 768, 1024, 1280, 1536, 1792, 2048]
 ax.set_xticks([t for t in ticks_all if P_START <= t <= P_END])
 ax.set_xlabel("Token position within 2048-token context window")
 
@@ -133,27 +139,58 @@ ax.set_xlabel("Token position within 2048-token context window")
 if not np.isfinite(global_min) or not np.isfinite(global_max):
     global_min, global_max = 0.0, 1.0
 span   = max(global_max - global_min, 1e-6)
-yticks = np.round(np.linspace(global_min - 0.24 * span, global_max, 12), 3)
+yticks = np.round(np.linspace(global_min+0.001, global_max, 12), 3)
 if 0.0 not in yticks:
     yticks = np.sort(np.append(yticks, 0.0))
-ax.set_ylim(global_min - 0.30 * span, global_max + 0.02 * span)
+ax.set_ylim(global_min - 0.02 * span, global_max + 0.02 * span)
 ax.set_yticks(yticks)
 ax.set_ylabel(f"NLL relative to value at context position {P_ALIGN}")
 
-# legend with thicker colour strips
-leg = ax.legend(loc="lower left", frameon=True, handlelength=4, borderaxespad=0.4)
-for line in leg.get_lines():
-    line.set_linewidth(6)
+# ── SPLIT LEGEND (top-left & bottom-left) ───────────────────────────────────
+if SPLIT_LEGEND:
+    handles, labels = ax.get_legend_handles_labels()
+    n = len(labels)
+    mid = (n + 1) // 2  # first half gets the extra if odd
+
+    leg1 = ax.legend(handles[:mid], labels[:mid],
+                     loc="upper left", frameon=True,
+                     handlelength=4, borderaxespad=0.4)
+    for line in leg1.get_lines():
+        line.set_linewidth(6)
+    ax.add_artist(leg1)  # keep first legend when drawing the second
+
+    leg2 = ax.legend(handles[mid:], labels[mid:],
+                     loc="lower left", frameon=True,
+                     handlelength=4, borderaxespad=0.4)
+    for line in leg2.get_lines():
+        line.set_linewidth(6)
+else:
+    if LEGEND_OUTSIDE:
+        plt.subplots_adjust(right=0.78)
+        leg = ax.legend(
+            loc="center left",
+            bbox_to_anchor=(1.02, 0.5),
+            frameon=True,
+            handlelength=4,
+            borderaxespad=0.0,
+        )
+        for line in leg.get_lines():
+            line.set_linewidth(6)
+    else:
+        leg = ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.4)
+        for line in leg.get_lines():
+            line.set_linewidth(6)
 
 print("\n[DEBUG] documents actually used per model:")
 for mdl, n in model_docs_used.items():
     print(f"  {mdl:>12}: {n} docs")
 
-ax.set_title(f"Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
+ax.set_title("GPT-2 Models: 1484 docs used per model")
+#(f"Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, Pythia 2.8B deduped: 641 docs, all others: 2813 docs")
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/eod_delta_nll_vs_position_start500_doublecheck.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/position_bias_EOD_gpt2.pdf",
     format="pdf",
     bbox_inches="tight",
 )
