@@ -23,11 +23,11 @@ torch.backends.cudnn.allow_tf32       = False
 
 # ── 1. Hyper-parameters ─────────────────────────────────────────────────────
 CTX        = 2048   # window length, should not be changed
-BATCH      = 8      # batch size (maybe set to power of 2), higher consumes more vram, had limited speedup in my testing
+BATCH      = 4      # batch size (maybe set to power of 2), higher consumes more vram, had limited speedup in my testing
 MODEL_SIZE = "1B"
-REVISIONS   = ["step0", "step1", "step2", "step4", "step8", "step16", "step32", "step64", "step128", "step256", "step512", "step1000", "step2000", "step4000", "step8000", "step16000", "step32000", "step64000", "step128000"]   #"step143000" is the final revision
+REVISIONS   = ["step4", "step8", "step16", "step32", "step64", "step128", "step256", "step512", "step1000", "step2000", "step4000", "step8000", "step16000", "step32000", "step64000", "step128000"]   #"step143000" is the final revision
 n_docs     = 500            # evaluate this many docs
-QUICKSTART_FROM = 117          # if code was interrupted, restart by entering how many files you already have
+QUICKSTART_FROM = 450          # if code was interrupted, restart by entering how many files you already have
 DEDUPED = False
 ADD_EOD = True               # set True to append eos_id to every document
 
