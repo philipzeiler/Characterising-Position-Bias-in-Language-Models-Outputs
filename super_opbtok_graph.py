@@ -3,7 +3,7 @@
 
 import os, h5py, numpy as np
 import matplotlib.pyplot as plt, seaborn as sns, matplotlib as mpl
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import ScalarFormatter, FixedLocator, FixedFormatter
 from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
@@ -190,10 +190,17 @@ for fi, fam in enumerate(FAMILIES):
 
 # ───────────────────────────── plot ─────────────────────────────────────────
 for s in series:
-    ax.plot(s["sizes_num"], s["bias"], marker="o", linewidth=2.2,
-            color=s["color"], label=s["family"])
+    ax.plot(
+        s["sizes_num"], s["bias"],
+        marker="o",
+        markersize=10,      # bigger dots
+        linestyle=":",      # dotted line
+        linewidth=2.0,
+        color=s["color"],
+        label=s["family"],
+    )
 
-# x-axis: model size in log2 scale, ticks at Pythia sizes with M/B labels
+# x-axis: model size in log2 scale, ticks at Pythia sizes with literal labels like "14M", "31M", etc.
 ax.set_xscale("log", base=2)
 
 # Build Pythia tick set (union of standard + deduped), sorted by numeric size
@@ -203,23 +210,21 @@ for fam in FAMILIES:
         for size_str, _ in fam["models"]:
             pythia_tick_pairs.append((_parse_size(size_str), size_str))
 # unique by numeric value, then sort
-# (use dict to deduplicate while keeping last label, then sort)
 tmp = {}
 for num, lab in pythia_tick_pairs:
     tmp[num] = lab
 pythia_tick_nums = sorted(tmp.keys())
 pythia_tick_labs = [tmp[num] for num in pythia_tick_nums]
 
-ax.set_xticks(pythia_tick_nums)
-ax.set_xticklabels(pythia_tick_labs)
+# Use FixedLocator/FixedFormatter so our custom labels are not overridden
+ax.xaxis.set_major_locator(FixedLocator(pythia_tick_nums))
+ax.xaxis.set_major_formatter(FixedFormatter(pythia_tick_labs))
+
 ax.set_xlim(x_min * 0.95, x_max * 1.05)
 
-ax.xaxis.set_major_formatter(ScalarFormatter())
-ax.ticklabel_format(style="plain", axis="x")
-
-ax.set_xlabel("Model size in parameters")
+ax.set_xlabel("Model size in parameters (log scale)")
 ax.set_ylabel("Token output position bias in NLL")
-ax.set_ylim(bottom=0)  # ← start y-axis at 0
+ax.set_ylim(bottom=0)  # start y-axis at 0
 
 ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.4)
 ax.set_title("Token output position bias by model size and family")

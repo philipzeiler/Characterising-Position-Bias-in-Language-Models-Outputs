@@ -3,7 +3,7 @@
 
 import os, h5py, numpy as np
 import matplotlib.pyplot as plt, seaborn as sns, matplotlib as mpl
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import FixedLocator, FixedFormatter   # ← changed: use Fixed* for literal labels
 from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
@@ -68,7 +68,7 @@ FILE_LIM            = 50000   # docs per model (None → all)
 
 # ───────────────────────────── helpers ──────────────────────────────────────
 def _parse_size(size_str: str) -> float:
-    """Convert '70M' → 70e6, '1.4B' → 1.4e9 for x-axis sorting/scale."""
+    """Convert '70M' → 70e6, '1.4B' → 1.4e9 for x-axis positioning."""
     s = size_str.strip().upper().replace(" ", "")
     mult = 1.0
     if s.endswith("M"):
@@ -81,16 +81,14 @@ def posbias_eod_for_h5(h5_path: str, CTX: int, P_START: int, MAX_DOC_LEN: int | 
     """
     EOD-only OPBtok:
       • For each document, take ONLY the last row (EOD token) of its NLL matrix.
-      • Average EOD NLL at each absolute context position P_t ∈ {2..CTX}.
-      • Align by subtracting the value at P_START (absolute position).
-      • Return max(Δ) - min(Δ) over P_t ∈ [P_START..CTX].
+      • Average EOD NLL at absolute positions P_t ∈ {2..CTX}.
+      • Align at P_START; return max(Δ) - min(Δ) over P_t ∈ [P_START..CTX].
     """
     try:
         with h5py.File(h5_path, "r") as f:
             nll_ds, ptr_ds = f["nll"], f["doc_ptr"]
 
-            # accumulate on k=1..CTX-1 (which correspond to absolute P_t=2..CTX)
-            sum_k   = np.zeros(CTX - 1, dtype=np.float64)
+            sum_k   = np.zeros(CTX - 1, dtype=np.float64)  # k=1..CTX-1 → P_t=2..CTX
             count_k = np.zeros(CTX - 1, dtype=np.int64)
 
             N_docs = len(ptr_ds) - 1
@@ -102,14 +100,11 @@ def posbias_eod_for_h5(h5_path: str, CTX: int, P_START: int, MAX_DOC_LEN: int | 
                 L = e - s
                 if MAX_DOC_LEN and L > MAX_DOC_LEN:
                     continue
-
                 if L <= 0:
                     continue
 
-                # EOD row is the last token of this document
                 eod_row = e - 1
-                vec = nll_ds[eod_row, :].astype(np.float32)   # shape (CTX-1,)
-
+                vec = nll_ds[eod_row, :].astype(np.float32)   # (CTX-1,)
                 m = np.isfinite(vec)
                 if not np.any(m):
                     continue
@@ -117,13 +112,11 @@ def posbias_eod_for_h5(h5_path: str, CTX: int, P_START: int, MAX_DOC_LEN: int | 
                 sum_k   += np.where(m, vec, 0.0)
                 count_k += m.astype(np.int64)
 
-        # Mean EOD NLL per k (1..CTX-1), then map to absolute P_t by shifting +1
         mean_k = np.where(count_k > 0, sum_k / count_k, np.nan)
 
-        # Build an absolute-position array where index == P_t (1..CTX);
-        # index 1 (P_t=1) remains NaN because no prediction exists at the first position.
+        # Map to absolute P_t where index == P_t (1..CTX), P_t=1 is NaN
         mean_full = np.full(CTX + 1, np.nan, dtype=np.float64)
-        mean_full[2:CTX + 1] = mean_k  # k=1..CTX-1 → P_t=2..CTX
+        mean_full[2:CTX + 1] = mean_k
 
         base = mean_full[P_START] if 1 <= P_START <= CTX else np.nan
         if not np.isfinite(base):
@@ -132,7 +125,7 @@ def posbias_eod_for_h5(h5_path: str, CTX: int, P_START: int, MAX_DOC_LEN: int | 
         shifted = mean_full - base
         shifted[P_START] = 0.0
 
-        sl = shifted[P_START:CTX + 1]   # absolute P_t range [P_START..CTX]
+        sl = shifted[P_START:CTX + 1]
         if not np.isfinite(sl).any():
             return None
 
@@ -145,7 +138,7 @@ sns.set_theme(style="whitegrid")
 sns.set_context("paper", font_scale=2.1)
 fig, ax = plt.subplots(figsize=(20, 10))
 
-# Fixed colors by family (same as before)
+# Fixed colors by family
 FAMILY_COLORS = {
     "Pythia standard": "red",
     "Pythia deduped":  "blue",
@@ -156,7 +149,7 @@ series = []   # list of dicts: {"family", "sizes_str", "sizes_num", "bias", "col
 x_min, x_max = np.inf, -np.inf
 y_min, y_max = np.inf, -np.inf
 
-for fi, fam in enumerate(FAMILIES):
+for fam in FAMILIES:
     fam_name = fam["family"]
     fam_ctx  = int(fam.get("CTX", DEFAULT_CTX))
     fam_ps   = int(fam.get("P_START", DEFAULT_P_START))
@@ -182,7 +175,6 @@ for fi, fam in enumerate(FAMILIES):
         y_min = min(y_min, pb);    y_max = max(y_max, pb)
         print(f"  │   ΔNLL range (OPBtok-EOD) = {pb:.6f}")
 
-    # sort within family by numeric size so lines connect left→right
     order = np.argsort(sizes_num)
     sizes_str  = [sizes_str[i]  for i in order]
     sizes_num  = [sizes_num[i]  for i in order]
@@ -199,36 +191,44 @@ for fi, fam in enumerate(FAMILIES):
 
 # ───────────────────────────── plot ─────────────────────────────────────────
 for s in series:
-    ax.plot(s["sizes_num"], s["bias"], marker="o", linewidth=2.2,
-            color=s["color"], label=s["family"])
+    ax.plot(
+    s["sizes_num"], s["bias"],
+    marker="o",
+    markersize=10,     # ← bigger dots (try 10–14)
+    linestyle=":",     # ← dotted line
+    linewidth=2.0,
+    color=s["color"],
+    label=s["family"],
+)
 
-# x-axis: model size in log2 scale; ticks at Pythia sizes with M/B labels
+# x-axis: log2 scale; ticks placed at Pythia sizes with literal labels ("14M", "31M", …)
 ax.set_xscale("log", base=2)
 
+# gather unique Pythia sizes → numeric positions + literal labels
 pythia_tick_pairs = []
 for fam in FAMILIES:
     if fam["family"] in ("Pythia standard", "Pythia deduped"):
         for size_str, _ in fam["models"]:
             pythia_tick_pairs.append((_parse_size(size_str), size_str))
+# dedupe by numeric value, keep last label, then sort by numeric
 tmp = {}
 for num, lab in pythia_tick_pairs:
     tmp[num] = lab
 pythia_tick_nums = sorted(tmp.keys())
 pythia_tick_labs = [tmp[num] for num in pythia_tick_nums]
 
-ax.set_xticks(pythia_tick_nums)
-ax.set_xticklabels(pythia_tick_labs)
+# ← key change: lock ticks & labels so they display literally as "14M", "31M", etc.
+ax.xaxis.set_major_locator(FixedLocator(pythia_tick_nums))
+ax.xaxis.set_major_formatter(FixedFormatter(pythia_tick_labs))
+
 ax.set_xlim(x_min * 0.95, x_max * 1.05)
 
-ax.xaxis.set_major_formatter(ScalarFormatter())
-ax.ticklabel_format(style="plain", axis="x")
-
-ax.set_xlabel("Model size in parameters")
-ax.set_ylabel("Token output position bias in NLL for EOD token")
+ax.set_xlabel("Model size in parameters (log scale)")
+ax.set_ylabel("Token output position bias in NLL (EOD only)")
 ax.set_ylim(bottom=0)
 
 ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.4)
-ax.set_title("EOD token output position bias by model size and family")
+ax.set_title("EOD-only token output position bias by model size and family")
 
 plt.tight_layout()
 plt.savefig(
