@@ -8,7 +8,7 @@ from tqdm import tqdm
 import random
 
 # ---------------- parameters -----------------------------------------------
-MODEL_SIZE = "160M"
+MODEL_SIZE = "2.8B"
 REVISIONS   = ["step0", "step1", "step2", "step4", "step8", "step16", "step32", "step64", "step128", "step256", "step512", "step1000", "step2000", "step4000", "step8000", "step16000", "step32000", "step64000", "step128000"]   #"step143000" is the final revision
 
 # Primary (seed A)

@@ -24,7 +24,7 @@ MODEL_SIZES = ["14M",
                "410M", 
                #"1B", 
                "1.4B", 
-               #"2.8B"
+               "2.8B"
                ]
 
 # The canonical set of checkpoints you’ve evaluated (equidistant on x).
@@ -45,11 +45,11 @@ CTX                      = 2048
 FILE_LIM                 = 500000  # no harm; we’ll stop at available docs
 USE_INTERESTING_PD       = False   # set True if you want the sparse P_d set
 FILTER_FULL_LEFT_CONTEXT = False   # if True, keep only P_d <= 1 (with P_d>=1 base keep → only P_d==1)
-MAX_DOC_LEN              = 512     # keep consistent with your checkpoint graphs
+MAX_DOC_LEN              = 500     # keep consistent with your checkpoint graphs
 
 P_ALIGN = 1
 P_START = 1
-P_END   = 1536                # use 1536 for Pythia, 2048 for OLMo2 if you port this there
+P_END   = 1548                # use 1536 for Pythia, 2048 for OLMo2 if you port this there
 
 # X ticks = show all steps as labels on an equidistant axis
 X_LABEL_STEPS = CHECKPOINT_STEPS  # override to subset if desired
@@ -198,7 +198,8 @@ for midx, model in enumerate(MODEL_SIZES):
 # Axes cosmetics
 ax.set_xlim(x_left, x_right)
 ax.set_xlabel("Training checkpoint")
-ax.set_ylabel("Document start output position bias in NLL")
+#ax.set_ylabel("Document start output position bias in NLL")
+ax.set_ylabel(fr"Document output position bias $\mathrm{{OPB}}^{{\mathrm{{doc}}}}$")
 
 # Custom x ticks at the equidistant positions, labeled by step
 ax.xaxis.set_major_locator(FixedLocator(x_tick_idx))            # custom positions

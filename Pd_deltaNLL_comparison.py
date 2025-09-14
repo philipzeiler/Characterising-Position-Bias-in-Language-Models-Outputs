@@ -33,14 +33,14 @@ MODELS = [
     #("1.4B no EOD", r"D:/NLL_matrices/1.4B_merged.h5"),
     #("2.8B no EOD", r"D:/NLL_matrices/2.8B_merged.h5"),
 
-    # ("70M",  r"D:/NLL_matrices/70M_deduped_merged.h5"),
-    # ("160M", r"D:/NLL_matrices/160M_deduped_merged.h5"),
-    # ("410M", r"D:/NLL_matrices/410M_deduped_merged.h5"),
-    # ("1B",   r"D:/NLL_matrices/1B_deduped_merged.h5"),
-    # ("1.4B", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
-    # ("2.8B with EOD", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
-    # ("6.9B", r"D:/NLL_matrices/6.9B_deduped_merged.h5"),
-    # ("12B",  r"D:/NLL_matrices/12B_deduped_merged.h5"),
+    ("70M",  r"D:/NLL_matrices/70M_deduped_merged.h5"),
+    ("160M", r"D:/NLL_matrices/160M_deduped_merged.h5"),
+    ("410M", r"D:/NLL_matrices/410M_deduped_merged.h5"),
+    ("1B",   r"D:/NLL_matrices/1B_deduped_merged.h5"),
+    ("1.4B", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
+    ("2.8B", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
+    ("6.9B", r"D:/NLL_matrices/6.9B_deduped_merged.h5"),
+    ("12B",  r"D:/NLL_matrices/12B_deduped_merged.h5"),
 
     # ("Pythia 70M",  r"D:/NLL_matrices/70M_merged.h5"),
     # ("Pythia 160M", r"D:/NLL_matrices/160M_merged.h5"),
@@ -49,10 +49,10 @@ MODELS = [
     # ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_merged.h5"),
     # ("Pythia 2.8B deduped", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
 
-    ("Small", r"D:/NLL_matrices/gpt2_merged.h5"),
-    ("Medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
-    ("Large", r"D:/NLL_matrices/gpt2-large_merged.h5"),
-    ("XL", r"D:/NLL_matrices/gpt2-xl_merged.h5"),
+    # ("Small", r"D:/NLL_matrices/gpt2_merged.h5"),
+    # ("Medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
+    # ("Large", r"D:/NLL_matrices/gpt2-large_merged.h5"),
+    # ("XL", r"D:/NLL_matrices/gpt2-xl_merged.h5"),
 
     # ("Step 0",  r"D:/NLL_matrices/revisions/70M_EOD/step0_merged.h5"),
     # ("Step 1",  r"D:/NLL_matrices/revisions/70M_EOD/step1_merged.h5"),
@@ -136,20 +136,20 @@ MODELS = [
     # ("Step 143000",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
 ]
 
-CTX                      = 1024
-FILE_LIM                 = 500000
+CTX                      = 2048
+FILE_LIM                 = 50000
 USE_INTERESTING_PD = False #Put true for sparse OLMO2 evaluation, otherwise false
 FILTER_FULL_LEFT_CONTEXT = False
-MAX_DOC_LEN              = 300 #512 or 2048 for olmo
+MAX_DOC_LEN              = 500 #500 or 2048 for olmo
 LEGEND_OUTSIDE = False   # ← set False to keep legend inside the axes
 
 
 P_ALIGN = 1
 P_START = 1
-P_END   = 724  # cut x at 2048 for olmo or 1548 for pythia
+P_END   = 1548  # cut x at 2048 for olmo or 1548 for pythia or #724 for gpt
 
 # >>> Your custom tick lists (edit these) <<<
-X_TICKS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 724,
+X_TICKS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, #724,
            #1024, 
            1548, 2048]
 Y_TICKS = None#[-0.004, -0.002, 0, 0.002, 0.004, 0.006, 0.008, 0.010, 0.012, 0.014, 0.016]; #set to a list to hardcode or None
@@ -166,7 +166,7 @@ def interesting_mask(Pd: np.ndarray, ctx: int) -> np.ndarray:
 # ────────────────────────────────────────────────────────────────────────────
 sns.set_theme(style="whitegrid")
 sns.set_context("paper", font_scale=2.1)
-fig, ax = plt.subplots(figsize=(20, 10)) #set to 10, 10 for compact, 20,10 for standard.
+fig, ax = plt.subplots(figsize=(10, 10)) #set to 10, 10 for compact, 20,10 for standard.
 
 # palette
 cmap     = mpl.cm.get_cmap("RdYlBu", len(MODELS) * 2)
@@ -288,7 +288,7 @@ if LEGEND_OUTSIDE:
     )
 else:
     leg = ax.legend(
-        loc="upper left",
+        loc="upper right",
         frameon=True,
         handlelength=4,
         borderaxespad=0.4,
@@ -301,9 +301,9 @@ print("\n[DEBUG] documents actually used per model:")
 for mdl, n in model_docs_used.items():
     print(f"  {mdl:>20}: {n} docs")
 
-ax.set_title("GPT-2 Models: 1484 docs used per model")
+ax.set_title("Pythia deduped models - 12B, 6.9B, 2.8B over 600 docs, rest: 2814 docs")
+#("GPT-2 Models: 1484 docs used per model")
 #("Pythia 2.8B: 2233 docs, Pythia 2.8B deduped: 2290 docs, all others: 2814 docs")
-#("Pythia deduped models - 12B: 602 docs, 6.9B: 704 docs, 2.8B: 641 docs, rest: 2814 docs")
 #("Pythia 14M: 264 docs used per checkpoint")
 #("Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
 #("Pythia 70M: 264 docs used per checkpoint")
@@ -314,7 +314,7 @@ ax.set_title("GPT-2 Models: 1484 docs used per model")
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/document_position_bias_pythia_no_EOD.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/document_position_bias_pythia_deduped_compact.pdf",
     format="pdf",
     bbox_inches="tight",
 )

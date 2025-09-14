@@ -18,16 +18,16 @@ from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
 MODELS = [
-    # ("Pythia 14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
-    # ("Pythia 31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
-    # ("Pythia 70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
-    # ("Pythia 160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
-    # ("Pythia 410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
-    # ("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
-    # ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
-    # ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
-    # ("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
-    # ("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
+    ("14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
+    ("31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
+    ("70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
+    ("160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
+    ("410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
+    ("1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
+    ("1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+    ("2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
+    ("6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
+    ("12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
 
     # ("Pythia 70M",  r"D:/NLL_matrices/70M_merged.h5"),
     # ("Pythia 160M", r"D:/NLL_matrices/160M_merged.h5"),
@@ -101,10 +101,10 @@ MODELS = [
     #("OLMo 2 7B", r"D:/NLL_matrices/1124-7B_EOD_merged.h5"),
     #("OLMo 2 13B", r"D:/NLL_matrices/1124-13B_EOD_merged.h5"),
 
-    ("Small", r"D:/NLL_matrices/gpt2_merged.h5"),
-    ("Medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
-    ("Large", r"D:/NLL_matrices/gpt2-large_merged.h5"),
-    ("XL", r"D:/NLL_matrices/gpt2-xl_merged.h5"),
+    # ("Small", r"D:/NLL_matrices/gpt2_merged.h5"),
+    # ("Medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
+    # ("Large", r"D:/NLL_matrices/gpt2-large_merged.h5"),
+    # ("XL", r"D:/NLL_matrices/gpt2-xl_merged.h5"),
 
     # ("70M",  r"D:/NLL_matrices/70M_deduped_merged.h5"),
     # ("160M", r"D:/NLL_matrices/160M_deduped_merged.h5"),
@@ -117,12 +117,12 @@ MODELS = [
     # ("12B",  r"D:/NLL_matrices/12B_deduped_merged.h5"),
 ]
 
-CTX              = 1024      # sliding-window length
+CTX              = 2048      # sliding-window length
 FILE_LIM         = 5000       # docs per model (None → all)
 FILTER_PD_NONNEG = False     # require full left context?
-MAX_DOC_LEN      = 300       # skip docs longer than this (None → keep all)
+MAX_DOC_LEN      = 500       # skip docs longer than this (None → keep all)
 
-P_START          = 300       # reference position for alignment (1-based)
+P_START          = 500       # reference position for alignment (1-based)
 
 # ── NEW: toggle to put the legend outside on the right ──────────────────────
 LEGEND_OUTSIDE   = False  # ← set False to keep legend inside (upper-left)
@@ -225,7 +225,7 @@ for idx, (name, h5_path) in enumerate(MODELS):
 # ─────────────────────── axis formatting & legend ───────────────────────────
 # x-axis
 ax.set_xlim(P_START, CTX)
-ax.set_xticks([300, 500, 768, 1024#, 1280, 1536, 1792, 2048
+ax.set_xticks([500, 768, 1024, 1280, 1536, 1792, 2048
                #, 2304, 2560, 2816, 3072, 3328, 3584, 3840, 4096
                ])
 ax.set_xlabel("Token position within 2048-token context window")
@@ -272,17 +272,17 @@ avg_docs = (sum(model_docs_used.values()) /
 
 # title & save
 #ax.set_title(f"Average of {round(avg_docs)} documents used per model")
-ax.set_title("GPT-2 Models: 1484 docs used per model")
+ax.set_title("Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
+#("GPT-2 Models: 1484 docs used per model")
 #("Pythia 2.8B: 2233 docs, Pythia 2.8B deduped: 2290 docs, all others: 2814 docs")
 #(f"Pythia 70M: 264 docs used per checkpoint")
 #("Pythia deduped models - 12B: 602 docs, 6.9B: 704 docs, 2.8B: 641 docs, rest: 2814 docs")
-#("Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
 
 #(f"Pythia 14M: 264 docs used per checkpoint")
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/token_position_bias_gpt2.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/token_position_bias_pythia_standard.pdf",
     format="pdf",
     bbox_inches="tight",
 )

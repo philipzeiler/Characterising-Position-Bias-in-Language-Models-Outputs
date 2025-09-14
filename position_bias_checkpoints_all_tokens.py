@@ -14,7 +14,7 @@ MODEL_SIZES = [
     "410M",
     #"1B",
     "1.4B",
-    #"2.8B",
+    "2.8B",
 ]
 
 # Canonical step list used for tick labels and ordering (equidistant spacing):

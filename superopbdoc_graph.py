@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # Document-level OPB (ΔNLL over P_d) vs model size, grouped by family.
 # Carries over aesthetics: log2 x with literal Pythia labels, dotted lines, big dots.
+# Change: For OLMo 2 models ONLY, compute bias using *only* the “interesting” P_d positions.
 
 import os, h5py, numpy as np
 import matplotlib.pyplot as plt, seaborn as sns, matplotlib as mpl
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import FixedLocator, FixedFormatter  # fixed ticks/labels
 from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
@@ -74,6 +75,9 @@ DEFAULT_P_END       = 1536
 DEFAULT_MAX_DOC_LEN = 512
 FILE_LIM            = 50000   # None → use all
 
+# Apply “interesting Pd only” filter to these families:
+INTERESTING_PD_FAMILIES = {"OLMo 2"}
+
 # ───────────────────────────── helpers ──────────────────────────────────────
 def _parse_size(size_str: str) -> float:
     """Convert '70M' → 70e6, '1.4B' → 1.4e9 (for numeric x positions)."""
@@ -82,13 +86,23 @@ def _parse_size(size_str: str) -> float:
     if s.endswith("B"): return float(s[:-1]) * 1e9
     return float(s)  # fallback if a plain number slips in
 
+def interesting_mask(Pd: np.ndarray, ctx: int) -> np.ndarray:
+    """Keep only “interesting” P_d: within ±128 OR power-of-two up to 4096."""
+    Pd_i  = Pd.astype(np.int64)
+    absPd = np.abs(Pd_i)
+    in_small = (Pd_i >= -128) & (Pd_i <= 128)
+    is_pow2  = (absPd > 0) & ((absPd & (absPd - 1)) == 0)
+    within_4096 = absPd <= 4096
+    return in_small | (is_pow2 & within_4096)
+
 def doc_posbias_for_h5(h5_path: str, CTX: int, P_ALIGN: int, P_START: int, P_END: int,
-                       MAX_DOC_LEN: int | None) -> float | None:
+                       MAX_DOC_LEN: int | None, use_interesting_pd: bool = False) -> float | None:
     """
     Document-level position bias for a merged .h5:
       1) mean NLL vs P_d in [1..P_END], ignoring NaNs
       2) align at P_d=P_ALIGN (ΔNLL)
       3) return max(ΔNLL) − min(ΔNLL) over P_d ∈ [P_START..P_END]
+      4) If use_interesting_pd=True, restrict to “interesting” P_d positions
     """
     if not os.path.exists(h5_path):
         return None
@@ -116,6 +130,9 @@ def doc_posbias_for_h5(h5_path: str, CTX: int, P_ALIGN: int, P_START: int, P_END
             P_d  = P_t - rows                                         # doc-start position
 
             keep = (P_d >= 1) & (P_d <= P_END) & (P_t <= CTX)
+            if use_interesting_pd:
+                keep &= interesting_mask(P_d, CTX)
+
             if not np.any(keep):
                 continue
 
@@ -138,7 +155,6 @@ def doc_posbias_for_h5(h5_path: str, CTX: int, P_ALIGN: int, P_START: int, P_END
     if not np.isfinite(sl).any():
         return None
 
-    # nanmin/nanmax ignore NaNs by design.
     y_min = np.nanmin(sl)
     y_max = np.nanmax(sl)
     return float(y_max - y_min)
@@ -168,12 +184,14 @@ for fam in FAMILIES:
     P_END    = int(fam.get("P_END",    min(DEFAULT_P_END, CTX)))
     MAXL     =      fam.get("MAX_DOC_LEN", DEFAULT_MAX_DOC_LEN)
 
-    print(f"\n[START] {fam_name}: CTX={CTX} | P_ALIGN={P_ALIGN} | P_START={P_START} | P_END={P_END} | MAX_DOC_LEN={MAXL}")
+    use_interesting = fam_name in INTERESTING_PD_FAMILIES  # ← ONLY OLMo 2
+
+    print(f"\n[START] {fam_name}: CTX={CTX} | P_ALIGN={P_ALIGN} | P_START={P_START} | P_END={P_END} | MAX_DOC_LEN={MAXL} | interesting={use_interesting}")
     sizes_str, sizes_num, biases = [], [], []
 
     for size_str, path in fam["models"]:
         print(f"  ├─ {size_str}: {path}")
-        pb = doc_posbias_for_h5(path, CTX, P_ALIGN, P_START, P_END, MAXL)
+        pb = doc_posbias_for_h5(path, CTX, P_ALIGN, P_START, P_END, MAXL, use_interesting_pd=use_interesting)
         if pb is None:
             print(f"  │   [WARN] skipped (missing file or baseline)")
             continue
@@ -203,7 +221,7 @@ for s in series:
         color=s["color"], label=s["family"]
     )
 
-# x-axis: log2; ticks at *Pythia* sizes with literal labels "14M", "1.4B", etc.
+# x-axis: log2; ticks at *Pythia* sizes with literal labels "14M", "31M", etc.
 ax.set_xscale("log", base=2)
 pythia_tick_pairs = []
 for fam in FAMILIES:
@@ -218,21 +236,20 @@ tick_nums = sorted(tmp.keys())
 tick_labs = [tmp[n] for n in tick_nums]
 
 if tick_nums:
-    ax.set_xticks(tick_nums)
-    ax.set_xticklabels(tick_labs)
+    ax.xaxis.set_major_locator(FixedLocator(tick_nums))        # fixed positions
+    ax.xaxis.set_major_formatter(FixedFormatter(tick_labs))     # literal labels
 
 # padding & axis labels
 if np.isfinite(x_min) and np.isfinite(x_max) and x_min < x_max:
     ax.set_xlim(x_min * 0.95, x_max * 1.05)
-ax.xaxis.set_major_formatter(ScalarFormatter())
-ax.ticklabel_format(style="plain", axis="x")
 
-ax.set_xlabel("Model size in parameters")
-ax.set_ylabel("Document-level output position bias in NLL (Δ max–min)")
+ax.set_xlabel("Model size in parameters (log scale)")
+#ax.set_ylabel("Document output position bias")
+ax.set_ylabel(fr"Document output position bias $\mathrm{{OPB}}^{{\mathrm{{doc}}}}$")
 ax.set_ylim(bottom=0)  # start y-axis at 0
 
-ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.4)
-ax.set_title("Document-level output position bias vs model size (by family)")
+ax.legend(loc="upper right", frameon=True, handlelength=4, borderaxespad=0.4)
+#ax.set_title("Document-level output position bias vs model size (by family)")
 
 plt.tight_layout()
 plt.savefig(
