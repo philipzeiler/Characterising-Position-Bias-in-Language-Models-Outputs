@@ -243,9 +243,9 @@ if tick_nums:
 if np.isfinite(x_min) and np.isfinite(x_max) and x_min < x_max:
     ax.set_xlim(x_min * 0.95, x_max * 1.05)
 
-ax.set_xlabel("Model size in parameters (log scale)")
+ax.set_xlabel("Model Number of Parameters (log scale)")
 #ax.set_ylabel("Document output position bias")
-ax.set_ylabel(fr"Document output position bias $\mathrm{{OPB}}^{{\mathrm{{doc}}}}$")
+ax.set_ylabel(fr"Document OP Bias ($\mathrm{{OPB}}^{{\mathrm{{doc}}}}$)")
 ax.set_ylim(bottom=0)  # start y-axis at 0
 
 ax.legend(loc="upper right", frameon=True, handlelength=4, borderaxespad=0.4)

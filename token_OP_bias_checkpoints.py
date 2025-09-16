@@ -12,7 +12,7 @@ MODEL_SIZES = [
     "70M",
     "160M",
     "410M",
-    #"1B",
+    "1B",
     "1.4B",
     "2.8B",
 ]
@@ -128,10 +128,12 @@ ax.xaxis.set_major_locator(FixedLocator(tick_positions))
 ax.xaxis.set_major_formatter(FixedFormatter(tick_labels))
 
 ax.set_xlabel("Training checkpoint")
-ax.set_ylabel("Token output position bias in NLL")
+
+#ax.set_ylabel("Token output position bias in NLL")
+ax.set_ylabel(fr"Token OP Bias ($\mathrm{{OPB}}^{{\mathrm{{tok}}}}$)")
 
 ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.4)
-ax.set_title("Pythia standard models: 264 docs used per checkpoint per model")
+#ax.set_title("Pythia standard models: 264 docs used per checkpoint per model")
 
 plt.tight_layout()
 plt.savefig(

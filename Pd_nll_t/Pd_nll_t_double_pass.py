@@ -32,16 +32,20 @@ Its not “±1 std dev,” and it doesnt say where new observations will fall.
 import h5py, numpy as np, pandas as pd, math
 import seaborn as sns, matplotlib.pyplot as plt
 from tqdm import tqdm
+import matplotlib as mpl
 
 # ---------------------------------------------------------------- parameters
-MODEL_NAME  = "Pythia 2.8B deduped"
-MERGED_H5   = "D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"   #size_EOD_merged.h5
-FILE_LIMIT  = 5000          # how many docs to scan
+MODEL_NAME  = "Pythia 1.4B"
+MERGED_H5   = "D:/NLL_matrices/1.4B_EOD_merged.h5"   #size_EOD_merged.h5
+FILE_LIMIT  = 5000         # how many docs to scan
 #Y_MAX       = 10           # (disabled in filters below)
 PD_MIN, PD_MAX = -2_047, 2_047
 #-1023, 1023
 
-# dynamic powers‑of‑two bucket edges ------------------------------------------------
+# NEW: toggle to place the legend outside (right side)
+LEGEND_OUTSIDE = True
+
+# dynamic powers-of-two bucket edges ------------------------------------------------
 T_EDGES = [0, 1] + [2**k for k in range(1, 12)] + [math.inf]#12 for pythia, 11 for gpt2
 T_LABELS = [
     f"{T_EDGES[i]}"                                   # show just “0”, “1”
@@ -141,26 +145,57 @@ sns.set_theme(style="whitegrid")
 sns.set_context("paper", font_scale=2.1)
 
 plt.figure(figsize=(20, 10))
-ax = sns.lineplot(data=df_plot, x="P_d", y="NLL", hue="t_bin",
-                  palette="viridis")
 
-# log₂ x‑axis ---------------------------------------------------------------
+# --- NEW: red→yellow→blue palette to match other plots ----------------------
+USE_REVERSED_COLORS = False  # set True if you want blue→red instead
+n_bins   = len(T_LABELS)
+cmap     = mpl.colormaps.get_cmap("RdYlBu")  # modern API
+if USE_REVERSED_COLORS:
+    palette_list = [cmap(1 - (i / max(n_bins - 1, 1))) for i in range(n_bins)]
+else:
+    palette_list = [cmap(i / max(n_bins - 1, 1)) for i in range(n_bins)]
+PALETTE_MAP = {lbl: palette_list[i] for i, lbl in enumerate(T_LABELS)}
+
+ax = sns.lineplot(
+    data=df_plot, x="P_d", y="NLL", hue="t_bin",
+    hue_order=T_LABELS,               # ensure stable label→color mapping
+    palette=PALETTE_MAP               # <-- was palette="viridis"
+)
+
+
+# log₂ x-axis ---------------------------------------------------------------
 ax.set_xscale('symlog', base=2, linthresh=2)
 ax.set_xlim(PD_MIN, PD_MAX)
-ax.set_ylim(0, 18)
+ax.set_ylim(0, 10)
 
-ax.legend(title="Token position within document",
-          loc="upper left",       # pin inside axes, upper-left corner
-          bbox_to_anchor=(0.02, 0.98),  # small padding from edges
-          borderaxespad=0)
+# ───── legend placement (toggle) ────────────────────────────────────────────
+if LEGEND_OUTSIDE:
+    # Reserve a right margin so the legend doesn't overlap the plot
+    plt.subplots_adjust(right=0.78)
+    leg = ax.legend(
+        title="Relative token position",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),    # just outside the right edge
+        frameon=True,
+        handlelength=4,
+        borderaxespad=0.0,
+    )
+else:
+    leg = ax.legend(title="Token position within document",
+                    loc="upper left",
+                    bbox_to_anchor=(0.02, 0.98),
+                    borderaxespad=0)
+
+# make legend line samples thicker, either way
+for line in leg.get_lines():
+    line.set_linewidth(6)
 
 ax.get_xaxis().set_major_formatter(plt.ScalarFormatter())
 ax.set_xticks([-2048,-1024,-512,-256,-128,-64,-32,-16,-8,-4,-2,-1, 0, 1,2,4,8,16,32,64,128,256,512,1024,2048])
 
-plt.xlabel("Document start position relative to context window")
+plt.xlabel("Document start position offset to left context window edge")
 plt.ylabel("Negative Log Likelihood")
-plt.title(
-    f"{MODEL_NAME}: {N_target:,} tokens randomly sampled per token position bin")
+#plt.title(f"{MODEL_NAME}: {N_target:,} tokens randomly sampled per token position bin")
 plt.tight_layout()
 plt.savefig(
     f"D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/{MODEL_NAME}_Pd_nll_t.pdf",

@@ -222,9 +222,9 @@ ax.xaxis.set_major_formatter(FixedFormatter(pythia_tick_labs))
 
 ax.set_xlim(x_min * 0.95, x_max * 1.05)
 
-ax.set_xlabel("Model size in number of parameters (log scale)")
+ax.set_xlabel("Model Number of Parameters (log scale)")
 #ax.set_ylabel("Token output position bias in NLL")
-ax.set_ylabel(fr"Token output position bias $\mathrm{{OPB}}^{{\mathrm{{tok}}}}$")
+ax.set_ylabel(fr"Token OP Bias ($\mathrm{{OPB}}^{{\mathrm{{tok}}}}$)")
 
 ax.set_ylim(bottom=0)  # start y-axis at 0
 

@@ -27,27 +27,47 @@ MODELS = [
         #   ("Pythia 1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
         #   ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
         #   ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
-        #   ("Pythia 2.8B deduped EOD", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
+        #   ("Pythia 2.8B deduped", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
         #   ("Pythia 6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
         #   ("Pythia 12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
 
-          ("Small", r"D:/NLL_matrices/gpt2_merged.h5"),
-          ("Medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
-          ("Large", r"D:/NLL_matrices/gpt2-large_merged.h5"),
-          ("XL", r"D:/NLL_matrices/gpt2-xl_merged.h5"),
+        #   ("Small", r"D:/NLL_matrices/gpt2_merged.h5"),
+        #   ("Medium", r"D:/NLL_matrices/gpt2-medium_merged.h5"),
+        #   ("Large", r"D:/NLL_matrices/gpt2-large_merged.h5"),
+        #   ("XL", r"D:/NLL_matrices/gpt2-xl_merged.h5"),
+            ("Step 0",  r"D:/NLL_matrices/revisions/1.4B_EOD/step0_merged.h5"),
+            ("Step 1",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1_merged.h5"),
+            ("Step 2",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2_merged.h5"),
+            ("Step 4",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4_merged.h5"),
+            ("Step 8",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8_merged.h5"),
+            ("Step 16",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16_merged.h5"),
+            ("Step 32",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32_merged.h5"),
+            ("Step 64",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64_merged.h5"),
+            ("Step 128",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128_merged.h5"),
+            ("Step 256",  r"D:/NLL_matrices/revisions/1.4B_EOD/step256_merged.h5"),
+            ("Step 512",  r"D:/NLL_matrices/revisions/1.4B_EOD/step512_merged.h5"),
+            ("Step 1000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1000_merged.h5"),
+            ("Step 2000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2000_merged.h5"),
+            ("Step 4000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4000_merged.h5"),
+            ("Step 8000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8000_merged.h5"),
+            ("Step 16000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16000_merged.h5"),
+            ("Step 32000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32000_merged.h5"),
+            ("Step 64000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64000_merged.h5"),
+            ("Step 128000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128000_merged.h5"),
+            ("Step 143000",  r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
           ]
 
 
-CTX                 = 1024
+CTX                 = 2048
 N_POS               = CTX - 1            # positions 1..2047
 FILE_LIM            = 5000               # docs per model (None → all)
 FILTER_PD_FULL_LEFT = False              # if True, require k ≤ L for EOD
-MAX_DOC_LEN         = 300                # None → keep all
-LEGEND_OUTSIDE      = False               # (kept for compatibility, ignored if SPLIT_LEGEND=True)
+MAX_DOC_LEN         = 500                # None → keep all
+LEGEND_OUTSIDE      = True               # (kept for compatibility, ignored if SPLIT_LEGEND=True)
 SPLIT_LEGEND        = False               # ← NEW: split legend into upper-left & lower-left
 
-P_ALIGN             = 300                # align baseline at this position
-P_START             = 300                # show from this position (no left gap)
+P_ALIGN             = 500                # align baseline at this position
+P_START             = 500                # show from this position (no left gap)
 P_END               = CTX                # ← show through *2048* on x-axis
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -133,18 +153,23 @@ ax.set_xlim(P_START, P_END)  # now truly ends at 2048
 # show ticks inside the visible range, including 2048
 ticks_all = [300, 500, 768, 1024, 1280, 1536, 1792, 2048]
 ax.set_xticks([t for t in ticks_all if P_START <= t <= P_END])
-ax.set_xlabel("Token position within 2048-token context window")
+ax.set_xlabel("Context Position ($c$)")
 
 # y-axis ticks & limits (include 0)
 if not np.isfinite(global_min) or not np.isfinite(global_max):
     global_min, global_max = 0.0, 1.0
 span   = max(global_max - global_min, 1e-6)
 yticks = np.round(np.linspace(global_min+0.001, global_max, 12), 3)
+#yticks = np.round(np.linspace(global_min-0.003, global_max+0.002, 12), 3)
 if 0.0 not in yticks:
     yticks = np.sort(np.append(yticks, 0.0))
 ax.set_ylim(global_min - 0.02 * span, global_max + 0.02 * span)
+#ax.set_ylim(global_min - 0.024 * span, global_max + 0.02 * span)
+
 ax.set_yticks(yticks)
-ax.set_ylabel(f"NLL relative to value at context position {P_ALIGN}")
+#ax.set_ylabel(f"NLL relative to value at context position {P_ALIGN}")
+ax.set_ylabel(fr"Token OP Bias ($\mathrm{{OPB}}^{{\mathrm{{tok}}}}$(EOD, {P_ALIGN}, $c$))")
+
 
 # ── SPLIT LEGEND (top-left & bottom-left) ───────────────────────────────────
 if SPLIT_LEGEND:
@@ -185,12 +210,12 @@ print("\n[DEBUG] documents actually used per model:")
 for mdl, n in model_docs_used.items():
     print(f"  {mdl:>12}: {n} docs")
 
-ax.set_title("GPT-2 Models: 1484 docs used per model")
+#ax.set_title("GPT-2 Models: 1484 docs used per model")
 #(f"Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, Pythia 2.8B deduped: 641 docs, all others: 2813 docs")
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/position_bias_EOD_gpt2.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/position_bias_EOD_pythia_checkpoints.pdf",
     format="pdf",
     bbox_inches="tight",
 )

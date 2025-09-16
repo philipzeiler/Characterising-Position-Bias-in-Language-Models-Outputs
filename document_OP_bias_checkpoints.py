@@ -22,7 +22,7 @@ MODEL_SIZES = ["14M",
                "70M", 
                "160M", 
                "410M", 
-               #"1B", 
+               "1B", 
                "1.4B", 
                "2.8B"
                ]
@@ -199,7 +199,9 @@ for midx, model in enumerate(MODEL_SIZES):
 ax.set_xlim(x_left, x_right)
 ax.set_xlabel("Training checkpoint")
 #ax.set_ylabel("Document start output position bias in NLL")
-ax.set_ylabel(fr"Document output position bias $\mathrm{{OPB}}^{{\mathrm{{doc}}}}$")
+#ax.set_ylabel(fr"Document output position bias $\mathrm{{OPB}}^{{\mathrm{{doc}}}}$")
+ax.set_ylabel(fr"Document OP Bias ($\mathrm{{OPB}}^{{\mathrm{{doc}}}}$)")
+
 
 # Custom x ticks at the equidistant positions, labeled by step
 ax.xaxis.set_major_locator(FixedLocator(x_tick_idx))            # custom positions
@@ -225,7 +227,7 @@ leg = ax.legend(loc="upper left", frameon=True, handlelength=4, borderaxespad=0.
 for line in leg.get_lines():
     line.set_linewidth(6)
 
-ax.set_title("Pythia standard models: 264 docs used per checkpoint per model")
+#ax.set_title("Pythia standard models: 264 docs used per checkpoint per model")
 
 plt.tight_layout()
 plt.savefig(

@@ -18,16 +18,16 @@ from tqdm import tqdm
 
 # ───────────────────────────── user settings ────────────────────────────────
 MODELS = [
-    ("14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
-    ("31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
-    ("70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
-    ("160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
-    ("410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
-    ("1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
-    ("1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
-    ("2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
-    ("6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
-    ("12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
+    # ("14M",  r"D:/NLL_matrices/14M_EOD_merged.h5"),
+    # ("31M",  r"D:/NLL_matrices/31M_EOD_merged.h5"),
+    # ("70M",  r"D:/NLL_matrices/70M_EOD_merged.h5"),
+    # ("160M", r"D:/NLL_matrices/160M_EOD_merged.h5"),
+    # ("410M", r"D:/NLL_matrices/410M_EOD_merged.h5"),
+    # ("1B",   r"D:/NLL_matrices/1B_EOD_merged.h5"),
+    # ("1.4B", r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+    # ("2.8B", r"D:/NLL_matrices/2.8B_EOD_merged.h5"),
+    # ("6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
+    # ("12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
 
     # ("Pythia 70M",  r"D:/NLL_matrices/70M_merged.h5"),
     # ("Pythia 160M", r"D:/NLL_matrices/160M_merged.h5"),
@@ -36,26 +36,27 @@ MODELS = [
     # ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_merged.h5"),
     # ("Pythia 2.8B deduped", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
 
-    # ("Step 0",  r"D:/NLL_matrices/revisions/1.4B_EOD/step0_merged.h5"),
-    # ("Step 1",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1_merged.h5"),
-    # ("Step 2",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2_merged.h5"),
-    # ("Step 4",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4_merged.h5"),
-    # ("Step 8",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8_merged.h5"),
-    # ("Step 16",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16_merged.h5"),
-    # ("Step 32",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32_merged.h5"),
-    # ("Step 64",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64_merged.h5"),
-    # ("Step 128",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128_merged.h5"),
-    # ("Step 256",  r"D:/NLL_matrices/revisions/1.4B_EOD/step256_merged.h5"),
-    # ("Step 512",  r"D:/NLL_matrices/revisions/1.4B_EOD/step512_merged.h5"),
-    # ("Step 1000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1000_merged.h5"),
-    # ("Step 2000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2000_merged.h5"),
-    # ("Step 4000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4000_merged.h5"),
-    # ("Step 8000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8000_merged.h5"),
-    # ("Step 16000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16000_merged.h5"),
-    # ("Step 32000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32000_merged.h5"),
-    # ("Step 64000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64000_merged.h5"),
-    # ("Step 128000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128000_merged.h5"),
-    # ("Step 143000",  r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+    ("Step 0",  r"D:/NLL_matrices/revisions/1.4B_EOD/step0_merged.h5"),
+    ("Step 1",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1_merged.h5"),
+    ("Step 2",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2_merged.h5"),
+    ("Step 4",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4_merged.h5"),
+    ("Step 8",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8_merged.h5"),
+    ("Step 16",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16_merged.h5"),
+    ("Step 32",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32_merged.h5"),
+    ("Step 64",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64_merged.h5"),
+    ("Step 128",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128_merged.h5"),
+    ("Step 256",  r"D:/NLL_matrices/revisions/1.4B_EOD/step256_merged.h5"),
+    ("Step 512",  r"D:/NLL_matrices/revisions/1.4B_EOD/step512_merged.h5"),
+    ("Step 1000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1000_merged.h5"),
+    ("Step 2000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2000_merged.h5"),
+    ("Step 4000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4000_merged.h5"),
+    ("Step 8000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8000_merged.h5"),
+    ("Step 16000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16000_merged.h5"),
+    ("Step 32000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32000_merged.h5"),
+    ("Step 64000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64000_merged.h5"),
+    ("Step 128000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128000_merged.h5"),
+    ("Step 143000",  r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+
     # ("Step 0",  r"D:/NLL_matrices/revisions/14M_EOD/step0_merged.h5"),
     # ("Step 1",  r"D:/NLL_matrices/revisions/14M_EOD/step1_merged.h5"),
     # ("Step 2",  r"D:/NLL_matrices/revisions/14M_EOD/step2_merged.h5"),
@@ -111,8 +112,7 @@ MODELS = [
     # ("410M", r"D:/NLL_matrices/410M_deduped_merged.h5"),
     # ("1B",   r"D:/NLL_matrices/1B_deduped_merged.h5"),
     # ("1.4B", r"D:/NLL_matrices/1.4B_deduped_merged.h5"),
-    # #("2.8B", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
-    # ("2.8B with EOD", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
+    # ("2.8B", r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5"),
     # ("6.9B", r"D:/NLL_matrices/6.9B_deduped_merged.h5"),
     # ("12B",  r"D:/NLL_matrices/12B_deduped_merged.h5"),
 ]
@@ -125,7 +125,7 @@ MAX_DOC_LEN      = 500       # skip docs longer than this (None → keep all)
 P_START          = 500       # reference position for alignment (1-based)
 
 # ── NEW: toggle to put the legend outside on the right ──────────────────────
-LEGEND_OUTSIDE   = False  # ← set False to keep legend inside (upper-left)
+LEGEND_OUTSIDE   = True  # ← set False to keep legend inside (upper-left)
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -228,7 +228,8 @@ ax.set_xlim(P_START, CTX)
 ax.set_xticks([500, 768, 1024, 1280, 1536, 1792, 2048
                #, 2304, 2560, 2816, 3072, 3328, 3584, 3840, 4096
                ])
-ax.set_xlabel("Token position within 2048-token context window")
+#ax.set_xlabel("Token position within 2048-token context window")
+ax.set_xlabel("Context Position ($c$)")
 
 # y-axis : 10 evenly-spaced ticks, guaranteed to include 0
 span      = global_max - global_min if global_max > global_min else 1.0
@@ -239,7 +240,9 @@ if 0.0 not in yticks:
 margin    = 0.02 * span
 ax.set_ylim(global_min - margin, global_max + margin)
 ax.set_yticks(yticks)
-ax.set_ylabel(f"ΔNLL relative to value at context position {P_START}")
+#ax.set_ylabel(f"ΔNLL relative to value at context position {P_START}")
+ax.set_ylabel(fr"Token OP Bias ($\mathrm{{OPB}}^{{\mathrm{{tok}}}}$({P_START}, $c$))")
+
 
 # ───────────────────── legend (toggleable placement) ────────────────────────
 if LEGEND_OUTSIDE:
@@ -272,8 +275,8 @@ avg_docs = (sum(model_docs_used.values()) /
 
 # title & save
 #ax.set_title(f"Average of {round(avg_docs)} documents used per model")
-ax.set_title("Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
-#("GPT-2 Models: 1484 docs used per model")
+#ax.set_title("GPT-2 Models: 1484 docs used per model")
+#("Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 docs")
 #("Pythia 2.8B: 2233 docs, Pythia 2.8B deduped: 2290 docs, all others: 2814 docs")
 #(f"Pythia 70M: 264 docs used per checkpoint")
 #("Pythia deduped models - 12B: 602 docs, 6.9B: 704 docs, 2.8B: 641 docs, rest: 2814 docs")
@@ -282,7 +285,7 @@ ax.set_title("Pythia 6.9B: 1516 docs, Pythia 12B: 1245 docs, all others: 2813 do
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/token_position_bias_pythia_standard.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/token_position_bias_pythia_checkpoints.pdf",
     format="pdf",
     bbox_inches="tight",
 )
