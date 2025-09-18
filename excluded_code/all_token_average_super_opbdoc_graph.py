@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # Document-level OPB (ΔNLL over P_d) vs model size, grouped by family.
 # Carries over aesthetics: log2 x with literal Pythia labels, dotted lines, big dots.
-# Change: Use *document-level (macro) averaging* for OPB, matching the formal definition.
-# (Still: For OLMo 2 models ONLY, optionally restrict to the “interesting” P_d positions.)
+# Change: For OLMo 2 models ONLY, compute bias using *only* the “interesting” P_d positions.
 
 import os, h5py, numpy as np
 import matplotlib.pyplot as plt, seaborn as sns, matplotlib as mpl
@@ -14,7 +13,7 @@ from tqdm import tqdm
 #   - "CTX":         context window (e.g., 2048 for Pythia/OLMo2, 1024 for GPT-2)
 #   - "P_ALIGN":     P_d to align at (baseline), usually 1
 #   - "P_START":     first P_d to include in the plotted slice
-#   - "P_END":       last P_d to include (≤ CTX and typically = CTX - MAX_DOC_LEN)
+#   - "P_END":       last P_d to include (≤ CTX)
 #   - "MAX_DOC_LEN": skip docs longer than this (None → keep all)
 FAMILIES = [
     {
@@ -59,7 +58,7 @@ FAMILIES = [
     },
     {
         "family": "OLMo 2",
-        "CTX": 4096, "P_ALIGN": 1, "P_START": 1, "P_END": 2048, "MAX_DOC_LEN": 500,
+        "CTX": 4096, "P_ALIGN": 1, "P_START": 1, "P_END": 2048, "MAX_DOC_LEN": 2048,
         "models": [
             ("1B",   r"D:/NLL_matrices/0425-1B_EOD_merged.h5"),
             ("7B",   r"D:/NLL_matrices/1124-7B_EOD_merged.h5"),
@@ -99,27 +98,17 @@ def interesting_mask(Pd: np.ndarray, ctx: int) -> np.ndarray:
 def doc_posbias_for_h5(h5_path: str, CTX: int, P_ALIGN: int, P_START: int, P_END: int,
                        MAX_DOC_LEN: int | None, use_interesting_pd: bool = False) -> float | None:
     """
-    Document-level position bias for a merged .h5 (MACRO average across docs):
-      1) For each doc, compute per-P_d *doc mean NLL* by averaging its token NLLs at that P_d.
-      2) Macro-average those per-doc means across docs → mean_pd.
-      3) Align at P_d=P_ALIGN (ΔNLL).
-      4) Return max(ΔNLL) − min(ΔNLL) over P_d ∈ [P_START..P_END].
-      5) If use_interesting_pd=True, restrict to “interesting” P_d positions (after base keep).
+    Document-level position bias for a merged .h5:
+      1) mean NLL vs P_d in [1..P_END], ignoring NaNs
+      2) align at P_d=P_ALIGN (ΔNLL)
+      3) return max(ΔNLL) − min(ΔNLL) over P_d ∈ [P_START..P_END]
+      4) If use_interesting_pd=True, restrict to “interesting” P_d positions
     """
     if not os.path.exists(h5_path):
         return None
 
-    # Enforce full-context safe upper bound if MAX_DOC_LEN is provided.
-    if MAX_DOC_LEN is not None:
-        P_END_eff = min(P_END, CTX - MAX_DOC_LEN)
-    else:
-        P_END_eff = P_END
-    if P_END_eff < 1:
-        return None
-
-    # Accumulate per-**document** means per P_d, then macro-average across docs
-    docmean_sum_pd   = np.zeros(P_END_eff, dtype=np.float64)  # Σ over docs of (doc mean at P_d)
-    docmean_count_pd = np.zeros(P_END_eff, dtype=np.int64)    # #docs contributing at that P_d
+    sum_pd   = np.zeros(P_END, dtype=np.float64)   # bins 0..P_END-1 → P_d = i+1
+    count_pd = np.zeros(P_END, dtype=np.int64)
 
     with h5py.File(h5_path, "r") as f:
         nll_ds, ptr_ds = f["nll"], f["doc_ptr"]
@@ -130,7 +119,6 @@ def doc_posbias_for_h5(h5_path: str, CTX: int, P_ALIGN: int, P_START: int, P_END
         for d in range(N_docs):
             s, e = int(ptr_ds[d]), int(ptr_ds[d + 1])
             L = e - s
-            # Enforce doc length cap so that all plotted P_d have full useful context
             if MAX_DOC_LEN and L > MAX_DOC_LEN:
                 continue
 
@@ -141,54 +129,29 @@ def doc_posbias_for_h5(h5_path: str, CTX: int, P_ALIGN: int, P_START: int, P_END
             P_t  = cols + 2                                           # absolute 2..CTX
             P_d  = P_t - rows                                         # doc-start position
 
-            keep = (P_d >= 1) & (P_d <= P_END_eff) & (P_t <= CTX)
+            keep = (P_d >= 1) & (P_d <= P_END) & (P_t <= CTX)
             if use_interesting_pd:
                 keep &= interesting_mask(P_d, CTX)
 
             if not np.any(keep):
                 continue
 
-            d_idx   = (P_d[keep] - 1).astype(np.int64)    # 0..P_END_eff-1
+            d_idx   = (P_d[keep] - 1).astype(np.int64)               # 0..P_END-1
             nll_val = mat.ravel()[keep]
             m = np.isfinite(nll_val)
-            if not np.any(m):
-                continue
+            if np.any(m):
+                np.add.at(sum_pd,   d_idx[m], nll_val[m])
+                np.add.at(count_pd, d_idx[m], 1)
 
-            d_idx   = d_idx[m]
-            nll_val = nll_val[m]
-
-            # Per-doc, per-P_d token sums/counts → per-doc means
-            sums   = np.bincount(d_idx, weights=nll_val, minlength=P_END_eff)
-            counts = np.bincount(d_idx, minlength=P_END_eff)
-            have   = counts > 0
-            if not np.any(have):
-                continue
-
-            doc_means = np.zeros(P_END_eff, dtype=np.float64)
-            doc_means[have] = sums[have] / counts[have]
-
-            # Macro-accumulate across docs
-            docmean_sum_pd[have]   += doc_means[have]
-            docmean_count_pd[have] += 1
-
-    # Macro mean over documents at each P_d
-    with np.errstate(invalid="ignore", divide="ignore"):
-        mean_pd = np.where(docmean_count_pd > 0,
-                           docmean_sum_pd / docmean_count_pd,
-                           np.nan)
-
-    # Align and compute bias range over [P_START..P_END_eff]
-    if not (1 <= P_ALIGN <= P_END_eff):
-        return None
-    base = mean_pd[P_ALIGN - 1]
+    mean_pd  = np.where(count_pd > 0, sum_pd / count_pd, np.nan)
+    base     = mean_pd[P_ALIGN - 1] if 1 <= P_ALIGN <= P_END else np.nan
     if not np.isfinite(base):
         return None
 
-    shifted = mean_pd - base
+    shifted  = mean_pd - base
     shifted[P_ALIGN - 1] = 0.0
 
-    P_START_eff = max(1, P_START)
-    sl = shifted[P_START_eff - 1 : P_END_eff]
+    sl = shifted[P_START - 1 : P_END]     # plotted slice
     if not np.isfinite(sl).any():
         return None
 
@@ -232,7 +195,7 @@ for fam in FAMILIES:
         if pb is None:
             print(f"  │   [WARN] skipped (missing file or baseline)")
             continue
-        print(f"  │   ΔNLL range (doc-level OPB, macro) = {pb:.6f}")
+        print(f"  │   ΔNLL range (doc-level OPB) = {pb:.6f}")
         s_num = _parse_size(size_str)
         sizes_str.append(size_str); sizes_num.append(s_num); biases.append(pb)
 
@@ -286,10 +249,11 @@ ax.set_ylabel(fr"Document OP Bias ($\mathrm{{OPB}}^{{\mathrm{{doc}}}}$)")
 ax.set_ylim(bottom=0)  # start y-axis at 0
 
 ax.legend(loc="upper right", frameon=True, handlelength=4, borderaxespad=0.4)
+#ax.set_title("Document-level output position bias vs model size (by family)")
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/docopb_all_models_document_average_olmo2_500.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/docopb_all_models.pdf",
     format="pdf",
     bbox_inches="tight",
 )

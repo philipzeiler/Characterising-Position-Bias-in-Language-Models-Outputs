@@ -1,6 +1,7 @@
 import h5py, numpy as np, pandas as pd
 from pathlib import Path
 
+#get NLL values for EOD token predictions
 MERGED = Path(r"D:/NLL_matrices/2.8B_deduped_EOD_merged.h5")  # adjust if needed
 
 with h5py.File(MERGED, "r") as f:
