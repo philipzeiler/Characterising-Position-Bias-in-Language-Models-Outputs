@@ -22,3 +22,5 @@ OLMo 2 1B: 1612 docs,
 7B: 10874 docs,
 13B: 1966 docs
 
+Tokens for each bin in pd_nll_t graph:
+10235000 per bin

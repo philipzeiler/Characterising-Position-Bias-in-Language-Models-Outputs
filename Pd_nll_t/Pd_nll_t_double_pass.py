@@ -35,8 +35,8 @@ from tqdm import tqdm
 import matplotlib as mpl
 
 # ---------------------------------------------------------------- parameters
-MODEL_NAME  = "Pythia 1.4B"
-MERGED_H5   = "D:/NLL_matrices/1.4B_EOD_merged.h5"   #size_EOD_merged.h5
+MODEL_NAME  = "Pythia 31M"
+MERGED_H5   = "D:/NLL_matrices/31M_EOD_merged.h5"   #size_EOD_merged.h5
 FILE_LIMIT  = 5000         # how many docs to scan
 #Y_MAX       = 10           # (disabled in filters below)
 PD_MIN, PD_MAX = -2_047, 2_047
@@ -48,14 +48,17 @@ LEGEND_OUTSIDE = True
 # dynamic powers-of-two bucket edges ------------------------------------------------
 T_EDGES = [0, 1] + [2**k for k in range(1, 12)] + [math.inf]#12 for pythia, 11 for gpt2
 T_LABELS = [
-    f"{T_EDGES[i]}"                                   # show just “0”, “1”
-    if T_EDGES[i] + 1 == T_EDGES[i + 1]               # width-1 bin?
-    else f"{T_EDGES[i]}–{T_EDGES[i + 1] - 1}"         # closed range
-    if math.isfinite(T_EDGES[i + 1])                  # finite upper edge
-    else f"{T_EDGES[i]}+"                             # open-ended last bin
+    (
+        f"{T_EDGES[i] + 1}"                                  # width-1 bin → single number
+        if T_EDGES[i] + 1 == T_EDGES[i + 1]
+        else (
+            f"{T_EDGES[i] + 1}–{T_EDGES[i + 1]}"             # finite range → inclusive upper
+            if math.isfinite(T_EDGES[i + 1])
+            else f"{T_EDGES[i] + 1}+"                        # open-ended last bin
+        )
+    )
     for i in range(len(T_EDGES) - 1)
 ]
-
 rng = np.random.default_rng(seed=0)
 
 # ───────────────────────────── helpers ──────────────────────────────────────

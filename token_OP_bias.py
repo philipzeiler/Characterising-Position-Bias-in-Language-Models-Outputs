@@ -29,33 +29,33 @@ MODELS = [
     # ("6.9B", r"D:/NLL_matrices/6.9B_EOD_merged.h5"),
     # ("12B",  r"D:/NLL_matrices/12B_EOD_merged.h5"),
 
-    # ("Pythia 70M",  r"D:/NLL_matrices/70M_merged.h5"),
-    # ("Pythia 160M", r"D:/NLL_matrices/160M_merged.h5"),
-    # ("Pythia 410M", r"D:/NLL_matrices/410M_merged.h5"),
-    # ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_merged.h5"),
-    # ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_merged.h5"),
-    # ("Pythia 2.8B deduped", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
+    ("Pythia 70M",  r"D:/NLL_matrices/70M_merged.h5"),
+    ("Pythia 160M", r"D:/NLL_matrices/160M_merged.h5"),
+    ("Pythia 410M", r"D:/NLL_matrices/410M_merged.h5"),
+    ("Pythia 1.4B", r"D:/NLL_matrices/1.4B_merged.h5"),
+    ("Pythia 2.8B", r"D:/NLL_matrices/2.8B_merged.h5"),
+    ("Pythia 2.8B deduped", r"D:/NLL_matrices/2.8B_deduped_merged.h5"),
 
-    ("Step 0",  r"D:/NLL_matrices/revisions/1.4B_EOD/step0_merged.h5"),
-    ("Step 1",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1_merged.h5"),
-    ("Step 2",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2_merged.h5"),
-    ("Step 4",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4_merged.h5"),
-    ("Step 8",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8_merged.h5"),
-    ("Step 16",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16_merged.h5"),
-    ("Step 32",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32_merged.h5"),
-    ("Step 64",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64_merged.h5"),
-    ("Step 128",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128_merged.h5"),
-    ("Step 256",  r"D:/NLL_matrices/revisions/1.4B_EOD/step256_merged.h5"),
-    ("Step 512",  r"D:/NLL_matrices/revisions/1.4B_EOD/step512_merged.h5"),
-    ("Step 1000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1000_merged.h5"),
-    ("Step 2000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2000_merged.h5"),
-    ("Step 4000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4000_merged.h5"),
-    ("Step 8000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8000_merged.h5"),
-    ("Step 16000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16000_merged.h5"),
-    ("Step 32000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32000_merged.h5"),
-    ("Step 64000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64000_merged.h5"),
-    ("Step 128000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128000_merged.h5"),
-    ("Step 143000",  r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
+    # ("Step 0",  r"D:/NLL_matrices/revisions/1.4B_EOD/step0_merged.h5"),
+    # ("Step 1",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1_merged.h5"),
+    # ("Step 2",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2_merged.h5"),
+    # ("Step 4",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4_merged.h5"),
+    # ("Step 8",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8_merged.h5"),
+    # ("Step 16",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16_merged.h5"),
+    # ("Step 32",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32_merged.h5"),
+    # ("Step 64",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64_merged.h5"),
+    # ("Step 128",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128_merged.h5"),
+    # ("Step 256",  r"D:/NLL_matrices/revisions/1.4B_EOD/step256_merged.h5"),
+    # ("Step 512",  r"D:/NLL_matrices/revisions/1.4B_EOD/step512_merged.h5"),
+    # ("Step 1000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step1000_merged.h5"),
+    # ("Step 2000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step2000_merged.h5"),
+    # ("Step 4000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step4000_merged.h5"),
+    # ("Step 8000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step8000_merged.h5"),
+    # ("Step 16000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step16000_merged.h5"),
+    # ("Step 32000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step32000_merged.h5"),
+    # ("Step 64000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step64000_merged.h5"),
+    # ("Step 128000",  r"D:/NLL_matrices/revisions/1.4B_EOD/step128000_merged.h5"),
+    # ("Step 143000",  r"D:/NLL_matrices/1.4B_EOD_merged.h5"),
 
     # ("Step 0",  r"D:/NLL_matrices/revisions/14M_EOD/step0_merged.h5"),
     # ("Step 1",  r"D:/NLL_matrices/revisions/14M_EOD/step1_merged.h5"),
@@ -125,7 +125,7 @@ MAX_DOC_LEN      = 500       # skip docs longer than this (None → keep all)
 P_START          = 500       # reference position for alignment (1-based)
 
 # ── NEW: toggle to put the legend outside on the right ──────────────────────
-LEGEND_OUTSIDE   = True  # ← set False to keep legend inside (upper-left)
+LEGEND_OUTSIDE   = False  # ← set False to keep legend inside (upper-left)
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -285,7 +285,7 @@ avg_docs = (sum(model_docs_used.values()) /
 
 plt.tight_layout()
 plt.savefig(
-    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/token_position_bias_pythia_checkpoints.pdf",
+    "D:/Sync/Sync/ETH Stuff/Bachelor Thesis/Code/graphs/token_position_bias_pythia_no_EOD.pdf",
     format="pdf",
     bbox_inches="tight",
 )
